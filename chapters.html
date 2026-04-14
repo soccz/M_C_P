@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Thinking — 챕터 읽기</title>
+  <meta name="description" content="Claude Thinking 전체 28챕터 마크다운 원문. 파이썬 입문 + 클로드 완벽 이해 가이드.">
+  <meta property="og:title" content="Claude Thinking — 챕터 읽기">
+  <meta property="og:description" content="7 Parts, 28 Chapters 마크다운 원문 읽기 모드">
+  <meta property="og:type" content="website">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/marked/marked.min.js" as="script">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg-toc:#fafaf9;--bg-reader:#fff;--bg-tint:#f5f5f4;--text-primary:#1c1917;--text-secondary:#57534e;--text-muted:#a8a29e;--accent:#E87B35;--accent-light:#fdf0ea;--accent-hover:#C65D1A;--border:#e7e5e4;--border-light:#d6d3d1;--code-bg:#1a1a1a;--code-text:#e7e5e4;--p1:#E87B35;--p2:#5a7a96;--p3:#5a8a6a;--p4:#7a6a9a;--p5:#c4724e;--p6:#3776AB;--p7:#8a6a5a}
+    *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+    body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-toc);color:var(--text-primary);-webkit-font-smoothing:antialiased}
+
+    /* Progress */
+    #progress-bar{position:fixed;top:0;left:0;height:2px;z-index:9999;background:var(--accent);width:0%;transition:width 80ms linear;opacity:0;pointer-events:none}
+    #progress-bar.visible{opacity:1}
+
+    /* TOC */
+    #toc-view{min-height:100vh;transition:opacity .35s,transform .35s}
+    #toc-view.hidden{opacity:0;pointer-events:none;position:absolute;transform:translateY(-20px)}
+    .toc-home-link{position:fixed;top:1.5rem;left:1.5rem;z-index:30;font-size:.78rem;color:var(--text-muted);text-decoration:none;transition:color .2s}
+    .toc-home-link:hover{color:var(--text-primary)}
+
+    /* Hero */
+    .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:3rem 2rem;position:relative;background:linear-gradient(180deg,var(--bg-toc) 0%,#f0ece4 100%)}
+    .hero-inner{max-width:660px}
+    .hero-badge{display:inline-flex;align-items:center;gap:.5rem;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);background:var(--accent-light);padding:.4rem 1rem;border-radius:20px;margin-bottom:2.5rem}
+    .hero h1{font-family:'Noto Serif KR',serif;font-size:clamp(2.2rem,5vw,3.2rem);font-weight:700;line-height:1.35;letter-spacing:-.03em;margin-bottom:1.2rem}
+    .hero h1 span{color:var(--accent)}
+    .hero-subtitle{font-size:1rem;color:var(--text-secondary);font-weight:300;line-height:1.9;margin-bottom:3rem}
+    .hero-stats{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:2rem}
+    .hero-stat{background:var(--bg-reader);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.8rem;min-width:120px;transition:transform .2s,box-shadow .2s}
+    .hero-stat:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(232,123,53,.12)}
+    .hero-stat-num{font-family:'Noto Serif KR',serif;font-size:2.2rem;font-weight:700;color:var(--text-primary);display:block;line-height:1.1}
+    .hero-stat-label{font-size:.72rem;color:var(--text-muted);letter-spacing:.06em;margin-top:.3rem;display:block}
+    .hero-links{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
+    .hero-cta{display:inline-flex;align-items:center;gap:.5rem;background:var(--accent);color:#fff;padding:.8rem 2rem;border-radius:8px;font-size:.9rem;font-weight:500;text-decoration:none;transition:background .2s,transform .2s;cursor:pointer;border:none}
+    .hero-cta:hover{background:var(--accent-hover);transform:translateY(-1px)}
+    .hero-cta-secondary{display:inline-flex;align-items:center;gap:.5rem;background:var(--bg-reader);color:var(--text-secondary);padding:.8rem 2rem;border-radius:8px;font-size:.9rem;font-weight:500;text-decoration:none;border:1px solid var(--border);transition:border-color .2s,transform .2s}
+    .hero-cta-secondary:hover{border-color:var(--accent);transform:translateY(-1px)}
+    .scroll-hint{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);color:var(--text-muted);font-size:.6rem;letter-spacing:.15em;animation:drift 2.5s ease-in-out infinite}
+    @keyframes drift{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
+
+    /* Part Progress */
+    .part-progress{max-width:660px;margin:0 auto;padding:0 2rem 2rem}
+    .progress-bar-visual{display:flex;gap:3px;margin-bottom:.6rem;height:6px;border-radius:3px;overflow:hidden}
+    .progress-seg{transition:flex .3s}
+    .progress-legend{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}
+    .legend-item{display:flex;align-items:center;gap:.4rem;font-size:.68rem;color:var(--text-muted)}
+    .legend-dot{width:8px;height:8px;border-radius:50%}
+
+    /* Search */
+    .search-bar{max-width:660px;margin:0 auto 2rem;padding:0 2rem}
+    .search-input{width:100%;padding:.7rem 1rem .7rem 2.5rem;border:1px solid var(--border);border-radius:8px;font-size:.9rem;background:var(--bg-reader) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a8a29e' stroke-width='2'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='M16 16l-3.5-3.5'/%3E%3C/svg%3E") no-repeat .8rem center;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit;color:var(--text-primary)}
+    .search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,123,53,.1)}
+
+    /* Chapter List */
+    .chapter-list-section{max-width:660px;margin:0 auto;padding:0 2rem 5rem}
+    .part-group{margin-bottom:2.5rem}
+    .part-label{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1rem;padding-bottom:.7rem;border-bottom:1px solid var(--border)}
+    .part-count{font-size:.65rem;color:var(--border-light);letter-spacing:.05em}
+    .part-color{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:.5rem}
+    .chapter-item{display:flex;align-items:baseline;gap:1.2rem;padding:.85rem 0;cursor:pointer;transition:padding-left .2s,background .15s;border-radius:6px}
+    .chapter-item:hover{padding-left:.6rem;background:rgba(232,123,53,.03)}
+    .chapter-item:hover .chapter-title{color:var(--accent)}
+    .chapter-num{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:500;color:var(--border-light);min-width:2rem;text-align:right;transition:color .2s}
+    .chapter-item:hover .chapter-num{color:var(--text-secondary)}
+    .chapter-info{flex:1}
+    .chapter-title{font-size:.95rem;font-weight:500;color:var(--text-primary);line-height:1.5;transition:color .2s}
+    .chapter-desc{font-size:.78rem;color:var(--text-muted);margin-top:.15rem;line-height:1.5}
+    .chapter-item.hidden{display:none}
+
+    /* Footer */
+    .toc-footer{max-width:660px;margin:0 auto;padding:2rem 2rem 4rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .toc-footer a{font-size:.8rem;color:var(--text-muted);text-decoration:none;transition:color .2s}
+    .toc-footer a:hover{color:var(--accent)}
+
+    /* Reader */
+    #reader-view{display:none;background:var(--bg-reader);min-height:100vh}
+    #reader-view.active{display:block}
+    .reader-topbar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:52px;display:flex;align-items:center;padding:0 1.5rem}
+    .topbar-back{background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:1.1rem;padding:.4rem;margin-right:1rem;transition:color .2s;display:flex;align-items:center}
+    .topbar-back:hover{color:var(--text-primary)}
+    .topbar-title{flex:1;font-size:.85rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .topbar-home{font-size:.76rem;color:var(--text-muted);text-decoration:none;white-space:nowrap;margin-left:.75rem;transition:color .2s}
+    .topbar-home:hover{color:var(--text-primary)}
+    .topbar-chapter-num{font-size:.78rem;color:var(--text-muted);margin-left:1rem;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+    .topbar-toc-btn{background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:1.1rem;padding:.4rem;margin-left:.8rem;transition:color .2s;display:flex;align-items:center}
+    .topbar-toc-btn:hover{color:var(--text-primary)}
+
+    /* Drawer */
+    .toc-drawer-overlay{position:fixed;inset:0;z-index:200;background:rgba(28,25,23,.3);opacity:0;pointer-events:none;transition:opacity .25s}
+    .toc-drawer-overlay.open{opacity:1;pointer-events:auto}
+    .toc-drawer{position:fixed;top:0;right:0;bottom:0;z-index:201;width:340px;max-width:85vw;background:var(--bg-toc);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s;overflow-y:auto;padding:1.5rem}
+    .toc-drawer.open{transform:translateX(0)}
+    .toc-drawer-title{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1.2rem;padding-bottom:.8rem;border-bottom:1px solid var(--border)}
+    .toc-drawer-sep{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-top:1rem;margin-bottom:.5rem;padding-top:.5rem;border-top:1px solid var(--border)}
+    .toc-drawer-item{display:flex;align-items:baseline;gap:.8rem;padding:.45rem .5rem;cursor:pointer;border-radius:4px;transition:background .15s;font-size:.8rem;color:var(--text-secondary)}
+    .toc-drawer-item:hover{background:var(--bg-tint)}
+    .toc-drawer-item.active{color:var(--text-primary);font-weight:500;background:var(--bg-tint)}
+    .toc-drawer-num{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text-muted);min-width:2rem;text-align:right}
+
+    /* Reader Content */
+    .reader-column{max-width:700px;margin:0 auto;padding:80px 2rem 4rem}
+    .reader-content{font-size:16.5px;line-height:2;color:var(--text-primary)}
+    .reader-content h1{font-family:'Noto Serif KR',serif;font-size:2rem;font-weight:700;margin-top:3rem;margin-bottom:1rem;line-height:1.4;letter-spacing:-.02em}
+    .reader-content h1:first-child{margin-top:0}
+    .reader-content h2{font-family:'Noto Serif KR',serif;font-size:1.45rem;font-weight:600;margin-top:2.5rem;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);line-height:1.4}
+    .reader-content h3{font-size:1.12rem;font-weight:700;margin-top:2rem;margin-bottom:.8rem;line-height:1.5}
+    .reader-content h4{font-size:1.02rem;font-weight:600;margin-top:1.5rem;margin-bottom:.6rem;color:var(--text-secondary)}
+    .reader-content p{margin-bottom:1rem}
+    .reader-content ul,.reader-content ol{margin:.8rem 0 1rem 1.5rem}
+    .reader-content li{margin-bottom:.4rem}
+    .reader-content blockquote{border-left:3px solid var(--accent);padding:.8rem 1.2rem;margin:1.2rem 0;background:var(--accent-light);border-radius:0 6px 6px 0;font-size:.95rem;color:var(--text-secondary)}
+    .reader-content table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.88rem}
+    .reader-content th,.reader-content td{border:1px solid var(--border);padding:.55rem .75rem;text-align:left}
+    .reader-content th{background:var(--bg-tint);font-weight:600}
+    .reader-content code{font-family:'JetBrains Mono',monospace;font-size:.86em;background:var(--bg-tint);padding:.15em .4em;border-radius:3px}
+    .reader-content pre{background:var(--code-bg);color:var(--code-text);padding:1.2rem;border-radius:8px;overflow-x:auto;margin:1.2rem 0;font-size:.84rem;line-height:1.6}
+    .reader-content pre code{background:none;padding:0;font-size:inherit}
+    .reader-content strong{font-weight:700}
+    .reader-content hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
+
+    /* Nav Bottom */
+    .reader-nav-bottom{display:flex;gap:1rem;margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border)}
+    .reader-nav-card{flex:1;padding:1.2rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+    .reader-nav-card:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(232,123,53,.1)}
+    .reader-nav-card.empty{visibility:hidden}
+    .reader-nav-card.next{text-align:right}
+    .reader-nav-label{font-size:.72rem;color:var(--text-muted);letter-spacing:.08em;margin-bottom:.3rem}
+    .reader-nav-title{font-size:.9rem;font-weight:500;color:var(--text-primary)}
+
+    /* Loading */
+    .loading-indicator{display:flex;justify-content:center;gap:6px;padding:4rem 0}
+    .loading-dot{width:6px;height:6px;background:var(--border-light);border-radius:50%;animation:pulse 1s ease-in-out infinite}
+    .loading-dot:nth-child(2){animation-delay:.15s}
+    .loading-dot:nth-child(3){animation-delay:.3s}
+    @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+
+    /* Scroll to Top */
+    .scroll-top{position:fixed;bottom:2rem;right:2rem;z-index:50;width:40px;height:40px;border-radius:50%;background:var(--bg-reader);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .scroll-top.visible{opacity:1;pointer-events:auto}
+    .scroll-top:hover{box-shadow:0 4px 16px rgba(0,0,0,.12);transform:translateY(-2px)}
+
+    @media(max-width:640px){
+      .hero-stats{gap:.6rem}
+      .hero-stat{padding:.8rem 1.2rem;min-width:90px}
+      .hero-stat-num{font-size:1.6rem}
+      .chapter-item{gap:.8rem}
+      .reader-column{padding:70px 1.2rem 3rem}
+      .reader-nav-bottom{flex-direction:column}
+      .reader-nav-card.next{text-align:left}
+      .toc-drawer{width:280px}
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- TOC -->
+<div id="toc-view">
+  <a class="toc-home-link" href="./">&larr; Presentation</a>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <span class="hero-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+        Claude Thinking &middot; 2026
+      </span>
+      <h1>Claude<br><span>Thinking</span></h1>
+      <p class="hero-subtitle">
+        클로드의 생각을 따라가는 교재.<br>
+        파이썬 입문 + 클로드 완벽 이해 가이드.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat"><span class="hero-stat-num">7</span><span class="hero-stat-label">Parts</span></div>
+        <div class="hero-stat"><span class="hero-stat-num">28</span><span class="hero-stat-label">Chapters</span></div>
+        <div class="hero-stat"><span class="hero-stat-num">62</span><span class="hero-stat-label">Core Concepts</span></div>
+      </div>
+      <div class="hero-links">
+        <button class="hero-cta" onclick="document.querySelector('.part-progress').scrollIntoView({behavior:'smooth'})">
+          Start Reading
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <a class="hero-cta-secondary" href="./">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Presentation
+        </a>
+      </div>
+    </div>
+    <div class="scroll-hint">SCROLL &darr;</div>
+  </section>
+
+  <!-- Part Progress -->
+  <div class="part-progress">
+    <div class="progress-bar-visual">
+      <div class="progress-seg" style="flex:4;background:var(--p1)"></div>
+      <div class="progress-seg" style="flex:4;background:var(--p2)"></div>
+      <div class="progress-seg" style="flex:3;background:var(--p3)"></div>
+      <div class="progress-seg" style="flex:4;background:var(--p4)"></div>
+      <div class="progress-seg" style="flex:4;background:var(--p5)"></div>
+      <div class="progress-seg" style="flex:5;background:var(--p6)"></div>
+      <div class="progress-seg" style="flex:4;background:var(--p7)"></div>
+    </div>
+    <div class="progress-legend">
+      <span class="legend-item"><span class="legend-dot" style="background:var(--p1)"></span>Part 1 (4)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--p2)"></span>Part 2 (4)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--p3)"></span>Part 3 (3)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--p4)"></span>Part 4 (4)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--p5)"></span>Part 5 (4)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--p6)"></span>Part 6 (5)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--p7)"></span>Part 7 (4)</span>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <input type="text" class="search-input" id="search-input" placeholder="챕터 검색... (예: MCP, 프롬프트, Hook)">
+  </div>
+
+  <div class="chapter-list-section" id="chapter-list"></div>
+
+  <footer class="toc-footer">
+    <a href="./">Presentation</a>
+    <a href="https://github.com/soccz/M_C_P" target="_blank" rel="noopener noreferrer">GitHub &nearr;</a>
+  </footer>
+</div>
+
+<!-- Reader -->
+<div id="reader-view">
+  <div class="reader-topbar">
+    <button class="topbar-back" onclick="goToToc()" aria-label="Back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <span class="topbar-title" id="topbar-title"></span>
+    <a class="topbar-home" href="./">Presentation</a>
+    <span class="topbar-chapter-num" id="topbar-num"></span>
+    <button class="topbar-toc-btn" onclick="toggleDrawer()" aria-label="Chapters">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+
+  <div class="toc-drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
+  <div class="toc-drawer" id="toc-drawer">
+    <div class="toc-drawer-title">Chapters</div>
+    <div id="drawer-list"></div>
+  </div>
+
+  <div class="reader-column">
+    <div class="reader-content" id="reader-content"></div>
+    <div class="reader-nav-bottom" id="reader-nav"></div>
+  </div>
+</div>
+
+<!-- Scroll to Top -->
+<button class="scroll-top" id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
+</button>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  const RAW='https://raw.githubusercontent.com/soccz/M_C_P/main/md/';
+  const CACHE_BUST='v='+Date.now();
+  const PARTS=[
+    {label:'Part 0 — 시작하기 전에',color:'p1',chapters:[
+      {id:'00',file:'part0_시작하기전에.md',title:'시작하기 전에',desc:'이 가이드의 철학과 접근법'},
+    ]},
+    {label:'Part 1 — 처음 만나는 클로드',color:'p1',chapters:[
+      {id:'01',file:'part1_ch01_클로드가뭔데.md',title:'클로드가 뭔데?',desc:'챗봇이 아니라 4경로 작업 시스템'},
+      {id:'02',file:'part1_ch02_터미널에서첫대화.md',title:'터미널에서 첫 대화',desc:'설치부터 첫 실행까지'},
+      {id:'03',file:'part1_ch03_클로드와잘대화하기.md',title:'클로드와 잘 대화하기',desc:'좋은 프롬프트의 5가지 패턴'},
+      {id:'04',file:'part1_ch04_에러는피드백이다.md',title:'에러는 피드백이다',desc:'빨간 글씨 읽는 법'},
+    ]},
+    {label:'Part 2 — 클로드의 기억과 설정',color:'p2',chapters:[
+      {id:'05',file:'part2_ch05_클로드의기억.md',title:'클로드의 기억',desc:'Memory, CLAUDE.md, rules/'},
+      {id:'06',file:'part2_ch06_클로드의설정.md',title:'클로드의 설정',desc:'permissions, model, 4종 모드'},
+      {id:'07',file:'part2_ch07_클로드의규칙.md',title:'클로드의 규칙',desc:'CLAUDE.md 다이어트, rules/ 분리'},
+      {id:'08',file:'part2_ch08_클로드의습관_Hooks.md',title:'클로드의 습관 — Hooks',desc:'자동 반응 설정'},
+    ]},
+    {label:'Part 3 — 대화의 기술',color:'p3',chapters:[
+      {id:'09',file:'part3_ch09_Context_Engineering.md',title:'Context Engineering',desc:'컨텍스트가 전부다'},
+      {id:'10',file:'part3_ch10_Prompt_Engineering.md',title:'Prompt Engineering',desc:'제약형 템플릿, 반복 구조'},
+      {id:'11',file:'part3_ch11_Harness_Engineering.md',title:'Harness Engineering',desc:'실행 환경이 품질을 결정'},
+    ]},
+    {label:'Part 4 — 클로드에게 능력을 주다',color:'p4',chapters:[
+      {id:'12',file:'part4_ch12_Skills.md',title:'Skills',desc:'명령어를 만드는 방법'},
+      {id:'13',file:'part4_ch13_MCP.md',title:'MCP',desc:'외부 도구 연결'},
+      {id:'14',file:'part4_ch14_Plugins_Connectors.md',title:'Plugins & Connectors',desc:'패키지로 묶기'},
+      {id:'15',file:'part4_ch15_비교와선택.md',title:'비교와 선택',desc:'Skill vs MCP vs Connector'},
+    ]},
+    {label:'Part 5 — 클로드의 작업 방식',color:'p5',chapters:[
+      {id:'16',file:'part5_ch16_세션운영.md',title:'세션 운영',desc:'1세션 = 1작업 원칙'},
+      {id:'17',file:'part5_ch17_계획과인수인계.md',title:'계획과 인수인계',desc:'Plan Mode, Handoff'},
+      {id:'18',file:'part5_ch18_Agent와SubAgent.md',title:'Agent와 SubAgent',desc:'Agentic Loop, 병렬 처리'},
+      {id:'19',file:'part5_ch19_토큰과비용.md',title:'토큰과 비용',desc:'비용 구조와 최적화'},
+    ]},
+    {label:'Part 6 — 클로드에게 맡기다',color:'p6',chapters:[
+      {id:'20',file:'part6_ch20_위임이라는개념.md',title:'위임이라는 개념',desc:'비동기 작업의 시작'},
+      {id:'21',file:'part6_ch21_Cowork세팅.md',title:'Cowork 세팅',desc:'Desktop + Cloud 설정'},
+      {id:'22',file:'part6_ch22_Channels.md',title:'Channels',desc:'Slack, GitHub 연동'},
+      {id:'23',file:'part6_ch23_Scheduled_Tasks.md',title:'Scheduled Tasks',desc:'cron 같은 자동 실행'},
+      {id:'24',file:'part6_ch24_Remote_Control.md',title:'Remote Control',desc:'원격 제어와 파이프라인'},
+    ]},
+    {label:'Part 7 — 내 클로드를 빚다',color:'p7',chapters:[
+      {id:'25',file:'part7_ch25_워크플로우설계.md',title:'워크플로우 설계',desc:'4가지 과업 모양'},
+      {id:'26',file:'part7_ch26_팀운영.md',title:'팀 운영',desc:'온보딩, 공유 규칙'},
+      {id:'27',file:'part7_ch27_종합프로젝트.md',title:'종합 프로젝트',desc:'처음부터 끝까지'},
+      {id:'28',file:'part7_ch28_계속성장하기.md',title:'계속 성장하기',desc:'원리가 남는다'},
+    ]},
+  ];
+
+  const CH=[];PARTS.forEach(p=>p.chapters.forEach(c=>CH.push({...c,partLabel:p.label,partColor:p.color})));
+  const T=CH.length,cache=new Map();let curId=null;
+
+  const $=id=>document.getElementById(id);
+  const tocV=$('toc-view'),readV=$('reader-view'),readC=$('reader-content'),readN=$('reader-nav'),
+        pBar=$('progress-bar'),tTitle=$('topbar-title'),tNum=$('topbar-num'),
+        dOverlay=$('drawer-overlay'),drawer=$('toc-drawer'),dList=$('drawer-list'),
+        scrollBtn=$('scroll-top');
+
+  marked.setOptions({gfm:true,breaks:false});
+
+  function idx(id){return CH.findIndex(c=>c.id===String(id).padStart(2,'0'))}
+
+  function buildToc(){
+    $('chapter-list').innerHTML=PARTS.map(p=>`
+      <div class="part-group">
+        <div class="part-label">
+          <span><span class="part-color" style="background:var(--${p.color})"></span>${p.label}</span>
+          <span class="part-count">${p.chapters.length} chapters</span>
+        </div>
+        ${p.chapters.map(c=>`
+          <div class="chapter-item" data-ch="${c.id}" data-search="${c.id} ${c.title} ${c.desc} ${c.file}">
+            <span class="chapter-num">${c.id==='00'?'0':'Ch.'+parseInt(c.id)}</span>
+            <div class="chapter-info">
+              <div class="chapter-title">${c.title}</div>
+              <div class="chapter-desc">${c.desc}</div>
+            </div>
+          </div>`).join('')}
+      </div>`).join('');
+    $('chapter-list').addEventListener('click',e=>{const i=e.target.closest('.chapter-item');if(i)openCh(i.dataset.ch)});
+  }
+
+  function buildDrawer(){
+    let h='';
+    PARTS.forEach(p=>{
+      h+=`<div class="toc-drawer-sep">${p.label.split('—')[0].trim()}</div>`;
+      p.chapters.forEach(c=>{h+=`<div class="toc-drawer-item" data-ch="${c.id}"><span class="toc-drawer-num">${c.id==='00'?'0':'Ch.'+parseInt(c.id)}</span><span>${c.title}</span></div>`});
+    });
+    dList.innerHTML=h;
+    dList.addEventListener('click',e=>{const i=e.target.closest('.toc-drawer-item');if(i){openCh(i.dataset.ch);toggleD()}});
+  }
+
+  function toggleD(){dOverlay.classList.toggle('open');drawer.classList.toggle('open')}
+
+  async function openCh(id){
+    id=String(id).padStart(2,'0');const i=idx(id),ch=CH[i];if(!ch)return;curId=id;
+    tocV.classList.add('hidden');readV.classList.add('active');pBar.classList.add('visible');
+    window.scrollTo({top:0,behavior:'instant'});
+    tTitle.textContent=(ch.id==='00'?'':'Ch.'+parseInt(ch.id)+'. ')+ch.title;
+    tNum.textContent=`${i+1} / ${T}`;
+    dList.querySelectorAll('.toc-drawer-item').forEach(el=>el.classList.toggle('active',el.dataset.ch===id));
+    history.pushState({ch:id},'',`?ch=${id}`);
+    if(cache.has(id)){render(cache.get(id))}
+    else{
+      readC.innerHTML=`<div class="loading-indicator"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>`;
+      try{
+        const r=await fetch(RAW+encodeURIComponent(ch.file)+'?'+CACHE_BUST);
+        if(!r.ok)throw 0;
+        const md=await r.text();cache.set(id,md);if(curId===id)render(md);
+      }catch(e){readC.innerHTML=`<p style="color:var(--text-muted);text-align:center;padding:4rem 0">불러올 수 없습니다.</p>`}
+    }
+    nav(i);
+  }
+
+  function render(md){readC.innerHTML=marked.parse(md)}
+
+  function nav(i){
+    const p=i>0?CH[i-1]:null,n=i<T-1?CH[i+1]:null;
+    readN.innerHTML=`
+      <div class="reader-nav-card prev ${p?'':'empty'}" ${p?`onclick="openCh('${p.id}')"`:''}>${p?`<div class="reader-nav-label">&larr; Previous</div><div class="reader-nav-title">${p.id==='00'?'':'Ch.'+parseInt(p.id)+'. '}${p.title}</div>`:''}</div>
+      <div class="reader-nav-card next ${n?'':'empty'}" ${n?`onclick="openCh('${n.id}')"`:''}>${n?`<div class="reader-nav-label">Next &rarr;</div><div class="reader-nav-title">${n.id==='00'?'':'Ch.'+parseInt(n.id)+'. '}${n.title}</div>`:''}</div>`;
+  }
+
+  window.goToToc=function(){readV.classList.remove('active');tocV.classList.remove('hidden');pBar.classList.remove('visible');pBar.style.width='0%';curId=null;history.pushState(null,'',location.pathname)};
+  window.openCh=openCh;window.toggleDrawer=toggleD;
+
+  window.addEventListener('scroll',()=>{
+    if(readV.classList.contains('active')){const h=document.documentElement.scrollHeight-innerHeight;pBar.style.width=h>0?(scrollY/h*100)+'%':'0%'}
+    scrollBtn.classList.toggle('visible',scrollY>400);
+  },{passive:true});
+
+  document.addEventListener('keydown',e=>{
+    if(!readV.classList.contains('active'))return;const i=idx(curId);
+    if(e.key==='ArrowRight'&&i<T-1)openCh(CH[i+1].id);
+    if(e.key==='ArrowLeft'&&i>0)openCh(CH[i-1].id);
+    if(e.key==='Escape'){if(drawer.classList.contains('open'))toggleD();else goToToc()}
+  });
+
+  $('search-input').addEventListener('input',e=>{
+    const q=e.target.value.toLowerCase().trim();
+    document.querySelectorAll('.chapter-item').forEach(el=>{
+      el.classList.toggle('hidden',q&&!el.dataset.search.toLowerCase().includes(q));
+    });
+    document.querySelectorAll('.part-group').forEach(g=>{
+      const visible=g.querySelectorAll('.chapter-item:not(.hidden)').length;
+      g.style.display=q&&!visible?'none':'';
+    });
+  });
+
+  window.addEventListener('popstate',e=>{
+    if(e.state&&e.state.ch)openCh(e.state.ch);
+    else{readV.classList.remove('active');tocV.classList.remove('hidden');pBar.classList.remove('visible');curId=null}
+  });
+
+  buildToc();buildDrawer();
+
+  const params=new URLSearchParams(location.search);
+  if(params.has('ch'))openCh(params.get('ch'));
+})();
+</script>
+</body>
+</html>
