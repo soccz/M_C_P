@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initThinkingFlows();
   initTabs();
   initCounters();
+  initBackToTop();
 });
 
 // ===== PROGRESS BAR =====
@@ -170,6 +171,20 @@ function animateCount(el, start, end, duration) {
     if (progress < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
+}
+
+// ===== BACK TO TOP =====
+function initBackToTop() {
+  const btn = document.querySelector('.btn-top');
+  if (!btn) return;
+
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > window.innerHeight);
+  }, { passive: true });
+
+  btn.addEventListener('click', () => {
+    document.querySelector('.slide').scrollIntoView({ behavior: 'smooth' });
+  });
 }
 
 // ===== KEYBOARD NAVIGATION =====

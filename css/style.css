@@ -536,6 +536,35 @@ tr:hover td {
   .os-layer::after { display: none; }
 }
 
+/* ===== BACK TO TOP ===== */
+.btn-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--claude-orange-border);
+  background: var(--claude-dark);
+  color: var(--claude-orange);
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+.btn-top.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.btn-top:hover {
+  background: var(--claude-orange);
+  color: var(--claude-black);
+}
+
 /* ===== DIAGRAM BOXES ===== */
 .diagram-flow {
   display: flex;
