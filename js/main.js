@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboardToast();
   initTouchSwipe();
   initKeyboardNav();
+  initPresToc();
 });
 
 // ===== PROGRESS BAR =====
@@ -245,3 +246,73 @@ function initKeyboardNav() {
     }
   });
 }
+
+// ===== PRESENTATION TOC DRAWER =====
+function initPresToc() {
+  const list = document.getElementById('pres-toc-list');
+  if (!list) return;
+
+  const slides = document.querySelectorAll('.slide');
+  let html = '';
+  let currentPart = '';
+
+  slides.forEach((slide, i) => {
+    const title = slide.dataset.title || '';
+    const cls = slide.className;
+
+    // Part separator for chapter slides
+    if (cls.includes('slide--chapter') && title.startsWith('Part')) {
+      currentPart = title;
+      html += `<div class="pres-toc-part">${title}</div>`;
+      return;
+    }
+    if (cls.includes('slide--chapter') && title === '로드맵') {
+      html += `<div class="pres-toc-part">Overview</div>`;
+    }
+
+    // Extract CH number if present
+    const chMatch = title.match(/^Ch\.(\d+)/);
+    const num = chMatch ? chMatch[1] : '';
+    const displayTitle = title.replace(/^Ch\.\d+\s*/, '');
+
+    // Only show slides with meaningful titles (skip "Ch.X 요약" duplicates for cleaner list)
+    if (title === '표지' || cls.includes('slide--chapter') || chMatch) {
+      html += `<div class="pres-toc-item" data-slide="${i}">
+        <span class="pres-toc-item-num">${num || (title === '표지' ? '▶' : '')}</span>
+        <span class="pres-toc-item-title">${displayTitle || title}</span>
+      </div>`;
+    }
+  });
+
+  list.innerHTML = html;
+
+  // Click to navigate
+  list.addEventListener('click', (e) => {
+    const item = e.target.closest('.pres-toc-item');
+    if (!item) return;
+    const idx = parseInt(item.dataset.slide);
+    slides[idx]?.scrollIntoView({ behavior: 'smooth' });
+    togglePresToc();
+  });
+
+  // Track active slide
+  const items = list.querySelectorAll('.pres-toc-item');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const slideIdx = Array.from(slides).indexOf(entry.target);
+        items.forEach(item => {
+          item.classList.toggle('active', parseInt(item.dataset.slide) === slideIdx);
+        });
+      }
+    });
+  }, { threshold: 0.5 });
+
+  slides.forEach(slide => observer.observe(slide));
+}
+
+// Toggle TOC drawer
+window.togglePresToc = function() {
+  document.getElementById('pres-toc-overlay')?.classList.toggle('open');
+  document.getElementById('pres-toc-drawer')?.classList.toggle('open');
+};

@@ -6017,6 +6017,29 @@ mcp__playwright__navigate(
   </div>
 </section>
 
+<!-- Fixed top-left nav -->
+<div class="pres-topnav">
+  <a href="https://soccz.github.io/" class="pres-topnav-link" aria-label="Home">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  </a>
+  <a href="./" class="pres-topnav-link" aria-label="챕터 읽기">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+  </a>
+  <button class="pres-topnav-link pres-toc-toggle" aria-label="목차 열기" onclick="togglePresToc()">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+</div>
+
+<!-- TOC Drawer -->
+<div class="pres-toc-overlay" id="pres-toc-overlay" onclick="togglePresToc()"></div>
+<div class="pres-toc-drawer" id="pres-toc-drawer" role="dialog" aria-label="목차" aria-modal="true">
+  <div class="pres-toc-header">
+    <span>목차</span>
+    <button onclick="togglePresToc()" aria-label="닫기" style="background:none;border:none;color:var(--claude-gray);font-size:1.2rem;cursor:pointer;padding:0.25rem;">&times;</button>
+  </div>
+  <div class="pres-toc-list" id="pres-toc-list"></div>
+</div>
+
 <button class="btn-top" aria-label="맨 위로">↑</button>
 <script src="js/main.js" defer></script>
 </body>
