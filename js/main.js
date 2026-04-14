@@ -317,90 +317,95 @@ window.togglePresToc = function() {
   document.getElementById('pres-toc-drawer')?.classList.toggle('open');
 };
 
-// ===== SLIDE SWITCHER (Mission Control style) =====
-window.openSwitcher = function() {
-  const overlay = document.getElementById('switcher-overlay');
-  const strip = document.getElementById('switcher-strip');
-  if (!overlay || !strip) return;
+// ===== SLIDE SWITCHER PANEL =====
+(function() {
+  const panel = document.getElementById('switcher-panel');
+  if (!panel) return;
 
   const slides = document.querySelectorAll('.slide');
+  if (slides.length === 0) return;
   const slideArr = Array.from(slides);
 
-  // Find current slide
-  const currentIdx = slideArr.findIndex(s => {
-    const rect = s.getBoundingClientRect();
-    return rect.top >= -100 && rect.top <= window.innerHeight / 2;
-  });
-
-  // Show range: current ± 4 (9 cards visible)
-  const range = 4;
-  const start = Math.max(0, currentIdx - range);
-  const end = Math.min(slideArr.length - 1, currentIdx + range);
-
+  // Build panel content once
   let html = '';
-  for (let i = start; i <= end; i++) {
-    const slide = slideArr[i];
-    const title = slide.dataset.title || `Slide ${i + 1}`;
-    const isActive = i === currentIdx;
+  let lastPart = '';
+  slideArr.forEach((slide, i) => {
+    const title = slide.dataset.title || '';
     const cls = slide.className;
 
-    // Determine badge
+    // Badge
     let badge = '';
-    if (cls.includes('slide--chapter')) badge = 'Part';
-    else if (cls.includes('slide--title')) badge = 'Cover';
-    else {
-      const chMatch = title.match(/^Ch\.(\d+)/);
-      if (chMatch) badge = 'Ch.' + chMatch[1];
+    let isPartBreak = false;
+    if (cls.includes('slide--title')) { badge = '▶'; }
+    else if (cls.includes('slide--chapter')) {
+      if (title.startsWith('Part') || title === '로드맵') {
+        isPartBreak = lastPart !== title;
+        lastPart = title;
+      }
+      badge = '';
+    } else {
+      const m = title.match(/^Ch\.(\d+)/);
+      if (m) badge = m[1];
     }
 
-    // Extract clean title
     const cleanTitle = title.replace(/^Ch\.\d+\s*/, '');
+    if (!cleanTitle) return;
 
-    // Determine visual type for desc
-    let desc = '';
-    if (cls.includes('slide--diagram')) desc = 'Diagram';
-    else if (cls.includes('slide--highlight')) desc = 'Highlight';
-    else if (cls.includes('slide--chapter')) desc = 'Chapter Break';
-
-    html += `<div class="switcher-card ${isActive ? 'active' : ''}" data-idx="${i}">
-      <div class="switcher-card-badge">${badge}</div>
-      <div class="switcher-card-title">${cleanTitle}</div>
-      ${desc ? `<div class="switcher-card-desc">${desc}</div>` : ''}
+    html += `<div class="switcher-card${isPartBreak ? ' part-break' : ''}" data-idx="${i}">
+      <span class="switcher-card-badge">${badge}</span>
+      <span class="switcher-card-title">${cleanTitle}</span>
     </div>`;
-  }
-
-  strip.innerHTML = html;
-  overlay.classList.add('open');
-
-  // Scroll to center active card
-  requestAnimationFrame(() => {
-    const activeCard = strip.querySelector('.switcher-card.active');
-    if (activeCard) {
-      activeCard.scrollIntoView({ inline: 'center', behavior: 'instant' });
-    }
   });
+  panel.innerHTML = html;
 
-  // Click handler
-  strip.onclick = (e) => {
+  // Click to navigate
+  panel.addEventListener('click', (e) => {
     const card = e.target.closest('.switcher-card');
     if (!card) return;
     const idx = parseInt(card.dataset.idx);
     slideArr[idx]?.scrollIntoView({ behavior: 'smooth' });
-    closeSwitcher();
-  };
-};
+  });
 
-window.closeSwitcher = function() {
-  document.getElementById('switcher-overlay')?.classList.remove('open');
-};
+  // Track active slide and auto-scroll panel
+  const cards = panel.querySelectorAll('.switcher-card');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const slideIdx = slideArr.indexOf(entry.target);
+        cards.forEach(card => {
+          const isActive = parseInt(card.dataset.idx) === slideIdx;
+          card.classList.toggle('active', isActive);
+          if (isActive && panel.classList.contains('open')) {
+            card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        });
+      }
+    });
+  }, { threshold: 0.5 });
+  slideArr.forEach(s => observer.observe(s));
 
-// ESC closes switcher
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const overlay = document.getElementById('switcher-overlay');
-    if (overlay?.classList.contains('open')) {
-      closeSwitcher();
-      e.stopPropagation();
+  // Toggle
+  window.toggleSwitcher = function() {
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+      const active = panel.querySelector('.switcher-card.active');
+      if (active) active.scrollIntoView({ block: 'center', behavior: 'instant' });
     }
-  }
-});
+  };
+
+  // ESC closes
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && panel.classList.contains('open')) {
+      panel.classList.remove('open');
+    }
+  });
+
+  // Click outside closes
+  document.addEventListener('click', (e) => {
+    if (panel.classList.contains('open') &&
+        !panel.contains(e.target) &&
+        !e.target.closest('.switcher-trigger')) {
+      panel.classList.remove('open');
+    }
+  });
+})();

@@ -6041,16 +6041,12 @@ mcp__playwright__navigate(
 </div>
 
 <!-- Slide Switcher trigger -->
-<button class="switcher-trigger" onclick="openSwitcher()" aria-label="슬라이드 스위처">
+<button class="switcher-trigger" onclick="toggleSwitcher()" aria-label="슬라이드 스위처">
   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="7" height="7" rx="1"/><rect x="15" y="3" width="7" height="7" rx="1"/><rect x="2" y="14" width="7" height="7" rx="1"/><rect x="15" y="14" width="7" height="7" rx="1"/></svg>
 </button>
 
-<!-- Slide Switcher overlay -->
-<div class="switcher-overlay" id="switcher-overlay">
-  <button class="switcher-close" onclick="closeSwitcher()" aria-label="닫기">&times;</button>
-  <div class="switcher-strip" id="switcher-strip"></div>
-  <div class="switcher-hint">클릭하여 이동 · ESC 닫기</div>
-</div>
+<!-- Slide Switcher panel -->
+<div class="switcher-panel" id="switcher-panel" role="navigation" aria-label="슬라이드 네비게이션"></div>
 
 <button class="btn-top" aria-label="맨 위로">↑</button>
 <script src="js/main.js" defer></script>
