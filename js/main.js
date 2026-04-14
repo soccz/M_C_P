@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initBackToTop();
   initKeyboardToast();
   initTouchSwipe();
+  initKeyboardNav();
 });
 
 // ===== PROGRESS BAR =====
@@ -152,6 +153,7 @@ function initCounters() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const target = parseInt(entry.target.dataset.count);
+        if (isNaN(target) || target < 0) { observer.unobserve(entry.target); return; }
         animateCount(entry.target, 0, target, 1200);
         observer.unobserve(entry.target);
       }
@@ -185,7 +187,7 @@ function initBackToTop() {
   }, { passive: true });
 
   btn.addEventListener('click', () => {
-    document.querySelector('.slide').scrollIntoView({ behavior: 'smooth' });
+    document.querySelector('.slide')?.scrollIntoView({ behavior: 'smooth' });
   });
 }
 
@@ -222,12 +224,13 @@ function initTouchSwipe() {
 
   document.addEventListener('touchend', (e) => {
     const diff = startY - e.changedTouches[0].clientY;
-    if (Math.abs(diff) < 60) return; // too short
+    if (Math.abs(diff) < 60) return;
 
     const current = slideArr.findIndex(s => {
       const rect = s.getBoundingClientRect();
       return rect.top >= -100 && rect.top <= window.innerHeight / 2;
     });
+    if (current === -1) return;
 
     if (diff > 0 && current < slideArr.length - 1) {
       slideArr[current + 1].scrollIntoView({ behavior: 'smooth' });
@@ -238,7 +241,7 @@ function initTouchSwipe() {
 }
 
 // ===== KEYBOARD NAVIGATION =====
-(function() {
+function initKeyboardNav() {
   const slides = document.querySelectorAll('.slide');
   if (slides.length === 0) return;
   const slideArr = Array.from(slides);
@@ -248,6 +251,7 @@ function initTouchSwipe() {
       const rect = s.getBoundingClientRect();
       return rect.top >= -100 && rect.top <= window.innerHeight / 2;
     });
+    if (current === -1) return;
 
     if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
       e.preventDefault();
@@ -260,4 +264,4 @@ function initTouchSwipe() {
       slideArr[prev].scrollIntoView({ behavior: 'smooth' });
     }
   });
-})();
+}

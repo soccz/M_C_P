@@ -451,7 +451,11 @@
   buildToc();buildDrawer();
 
   const params=new URLSearchParams(location.search);
-  if(params.has('ch'))openCh(params.get('ch'));
+  if(params.has('ch')){
+    const chId=params.get('ch');
+    history.replaceState({ch:chId},'',location.href);
+    openCh(chId);
+  }
 })();
 </script>
 </body>
