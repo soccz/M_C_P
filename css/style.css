@@ -428,6 +428,33 @@ tr:hover td {
   .card-grid { grid-template-columns: 1fr; }
   .nav { display: none; }
   .title-huge { font-size: 2.2rem; }
+
+  /* Agentic loop SVG arrow hidden on mobile (boxes wrap) */
+  .loop-arrow { display: none; }
+
+  /* 3-column grids → single column on mobile */
+  [style*="grid-template-columns:repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 2-column grids with gap:0 (split panels) → stack */
+  [style*="grid-template-columns:1fr 1fr;gap:0"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="grid-template-columns: 1fr 1fr;gap:0"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Before/After split → stack */
+  [style*="grid-template-columns:1fr auto 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="grid-template-columns: 1fr auto 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* ===== FOOTER ===== */
