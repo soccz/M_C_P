@@ -429,9 +429,7 @@ tr:hover td {
 }
 
 @media (max-width: 768px) {
-  .switcher-panel { width: 160px; max-height: 60vh; }
-  .switcher-card-title { font-size: 0.65rem; }
-  .switcher-trigger { right: 0.5rem; width: 32px; height: 32px; }
+  .switcher-panel, .switcher-trigger { display: none; }
 }
 
 /* ===== CHAPTER BADGE ===== */
