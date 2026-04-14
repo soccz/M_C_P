@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initCounters();
   initBackToTop();
+  initKeyboardToast();
+  initTouchSwipe();
 });
 
 // ===== PROGRESS BAR =====
@@ -185,6 +187,54 @@ function initBackToTop() {
   btn.addEventListener('click', () => {
     document.querySelector('.slide').scrollIntoView({ behavior: 'smooth' });
   });
+}
+
+// ===== KEYBOARD TOAST =====
+function initKeyboardToast() {
+  if ('ontouchstart' in window) return; // skip on mobile
+  if (sessionStorage.getItem('ct-toast-shown')) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'keyboard-toast';
+  toast.innerHTML = '<span>↑↓</span> 키로 이동 · <span>Space</span> 다음 슬라이드';
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add('visible'));
+
+  setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+
+  sessionStorage.setItem('ct-toast-shown', '1');
+}
+
+// ===== TOUCH SWIPE =====
+function initTouchSwipe() {
+  const slides = document.querySelectorAll('.slide');
+  if (slides.length === 0) return;
+  const slideArr = Array.from(slides);
+
+  let startY = 0;
+  document.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    const diff = startY - e.changedTouches[0].clientY;
+    if (Math.abs(diff) < 60) return; // too short
+
+    const current = slideArr.findIndex(s => {
+      const rect = s.getBoundingClientRect();
+      return rect.top >= -100 && rect.top <= window.innerHeight / 2;
+    });
+
+    if (diff > 0 && current < slideArr.length - 1) {
+      slideArr[current + 1].scrollIntoView({ behavior: 'smooth' });
+    } else if (diff < 0 && current > 0) {
+      slideArr[current - 1].scrollIntoView({ behavior: 'smooth' });
+    }
+  }, { passive: true });
 }
 
 // ===== KEYBOARD NAVIGATION =====

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1a1a1a"/>
+  <text x="600" y="260" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="80" fill="#ffffff">Claude</text>
+  <text x="600" y="360" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="80" fill="#E87B35">Thinking</text>
+  <text x="600" y="430" text-anchor="middle" font-family="system-ui" font-weight="400" font-size="28" fill="#6b7280">클로드의 생각을 따라가는 교재</text>
+  <text x="600" y="475" text-anchor="middle" font-family="system-ui" font-weight="400" font-size="22" fill="#E87B35">7 Parts  ·  28 Chapters  ·  62 핵심 개념</text>
+</svg>
