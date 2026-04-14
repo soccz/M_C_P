@@ -424,6 +424,9 @@ tr:hover td {
   .card-grid { grid-template-columns: 1fr; }
   .nav { display: none; }
   .title-huge { font-size: 2.2rem; }
+  .os-layer { width: 100% !important; }
+  .os-layer::after { display: none; }
+  .slide-footer { left: 1.25rem; right: 1.25rem; }
 
   /* Agentic loop SVG arrow hidden on mobile (boxes wrap) */
   .loop-arrow { display: none; }
@@ -568,7 +571,10 @@ tr:hover td {
   letter-spacing: 0.05em;
 }
 .os-layer:hover::after { opacity: 1; }
-.os-layer:hover { transform: scale(1.03); }
+.os-layer:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 20px rgba(232,123,53,0.25);
+}
 
 .os-layer--interface {
   width: 100%;
@@ -590,14 +596,7 @@ tr:hover td {
   background: rgba(232,123,53,0.06);
   border: 1px solid var(--claude-orange-border);
 }
-.os-layer:hover {
-  box-shadow: 0 0 20px rgba(232,123,53,0.25);
-}
-
-@media (max-width: 768px) {
-  .os-layer { width: 100% !important; }
-  .os-layer::after { display: none; }
-}
+/* os-pyramid mobile — merged into main @media block below */
 
 /* ===== ICEBERG ===== */
 .iceberg {
@@ -693,33 +692,6 @@ tr:hover td {
   font-weight: 700;
 }
 
-/* ===== INTERACTIVE: TABS ===== */
-.tabs {
-  display: flex;
-  gap: 0.25rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.08);
-}
-
-.tab {
-  padding: 0.6rem 1.2rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--claude-gray);
-  border-bottom: 2px solid transparent;
-  transition: var(--transition);
-  margin-bottom: -2px;
-}
-
-.tab.active {
-  color: var(--claude-orange);
-  border-bottom-color: var(--claude-orange);
-}
-
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
 /* ===== KEYBOARD TOAST ===== */
 .keyboard-toast {
   position: fixed;
@@ -766,4 +738,25 @@ tr:hover td {
   font-size: 0.85rem;
   color: var(--claude-gray);
   margin-top: 0.3rem;
+}
+
+/* ===== FOCUS VISIBLE ===== */
+:focus-visible {
+  outline: 2px solid var(--claude-orange);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--claude-orange);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+:focus-within {
+  /* propagation anchor — no visual style needed at this level */
 }

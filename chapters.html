@@ -12,6 +12,8 @@
   <meta property="og:url" content="https://soccz.github.io/M_C_P/chapters.html">
   <meta property="og:image" content="https://soccz.github.io/M_C_P/og-image.svg">
   <meta name="theme-color" content="#fafaf9">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js" as="script" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -153,7 +155,9 @@
     .scroll-top:hover{box-shadow:0 4px 16px rgba(0,0,0,.12);transform:translateY(-2px)}
 
     /* Focus visible */
-    button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+    button:focus-visible,a:focus-visible,[role="button"]:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+    :focus:not(:focus-visible){outline:none}
+    :focus-within{/* propagation anchor */}
 
     /* Placeholder */
     .search-input::placeholder{color:var(--text-muted)}
@@ -179,6 +183,9 @@
       .toc-drawer{width:280px}
       .progress-legend{gap:.8rem}
     }
+    @media(prefers-reduced-motion:reduce){
+      *,::before,::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+    }
   </style>
 </head>
 <body>
@@ -189,7 +196,7 @@
 <div id="toc-view">
   <a class="toc-home-link" href="./">&larr; Presentation</a>
 
-  <section class="hero">
+  <section class="hero" aria-label="교재 소개 및 통계">
     <div class="hero-inner">
       <span class="hero-badge">
         <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
@@ -268,7 +275,7 @@
     </button>
   </div>
 
-  <div class="toc-drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
+  <div class="toc-drawer-overlay" id="drawer-overlay" role="button" tabindex="0" aria-label="챕터 목록 닫기" onclick="toggleDrawer()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDrawer()"></div>
   <div class="toc-drawer" id="toc-drawer" role="dialog" aria-label="챕터 목록" aria-modal="true">
     <div class="toc-drawer-title">Chapters</div>
     <div id="drawer-list"></div>
@@ -292,7 +299,7 @@
   'use strict';
 
   const RAW='https://raw.githubusercontent.com/soccz/M_C_P/main/md/';
-  const CACHE_BUST='v='+Date.now();
+  const CACHE_BUST='v=20260414';
   const PARTS=[
     {label:'Part 0 — 시작하기 전에',color:'text-muted',chapters:[
       {id:'00',file:'part0_시작하기전에.md',title:'시작하기 전에',desc:'이 가이드의 철학과 접근법'},
@@ -387,7 +394,7 @@
 
   async function openCh(id){
     id=String(id).padStart(2,'0');const i=idx(id),ch=CH[i];if(!ch)return;curId=id;
-    tocV.classList.add('hidden');readV.classList.add('active');pBar.classList.add('visible');
+    tocV.classList.add('hidden');readV.classList.add('active');pBar.classList.add('visible');pBar.style.width='0%';
     window.scrollTo({top:0,behavior:'instant'});
     tTitle.textContent=(ch.id==='00'?'':'Ch.'+parseInt(ch.id)+'. ')+ch.title;
     tNum.textContent=`${i+1} / ${T}`;
@@ -399,10 +406,10 @@
       try{
         const r=await fetch(RAW+encodeURIComponent(ch.file)+'?'+CACHE_BUST);
         if(!r.ok)throw 0;
-        const md=await r.text();cache.set(id,md);if(curId===id)render(md);
-      }catch(e){readC.innerHTML=`<p style="color:var(--text-muted);text-align:center;padding:4rem 0">불러올 수 없습니다.</p>`}
+        const md=await r.text();cache.set(id,md);if(curId===id){render(md);nav(i);}
+      }catch(e){if(curId===id)readC.innerHTML=`<p style="color:var(--text-muted);text-align:center;padding:4rem 0">불러올 수 없습니다.</p>`}
     }
-    nav(i);
+    if(cache.has(id))nav(i);
   }
 
   function render(md){

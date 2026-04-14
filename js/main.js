@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollAnimations();
   initNavDots();
   initThinkingFlows();
-  initTabs();
   initCounters();
   initBackToTop();
   initKeyboardToast();
@@ -125,25 +124,6 @@ function initThinkingFlows() {
       }
     }, { threshold: 0.3 });
     observer.observe(flow);
-  });
-}
-
-// ===== TABS =====
-function initTabs() {
-  document.querySelectorAll('.tabs').forEach(tabContainer => {
-    const tabs = tabContainer.querySelectorAll('.tab');
-    const parent = tabContainer.parentElement;
-    const contents = parent.querySelectorAll('.tab-content');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const target = tab.dataset.tab;
-        tabs.forEach(t => t.classList.remove('active'));
-        contents.forEach(c => c.classList.remove('active'));
-        tab.classList.add('active');
-        parent.querySelector(`.tab-content[data-tab="${target}"]`)?.classList.add('active');
-      });
-    });
   });
 }
 
