@@ -122,7 +122,7 @@
     .reader-content ul,.reader-content ol{margin:.8rem 0 1rem 1.5rem}
     .reader-content li{margin-bottom:.4rem}
     .reader-content blockquote{border-left:3px solid var(--accent);padding:.8rem 1.2rem;margin:1.2rem 0;background:var(--accent-light);border-radius:0 6px 6px 0;font-size:.95rem;color:var(--text-secondary)}
-    .reader-content table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.88rem}
+    .reader-content table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.88rem;display:block;overflow-x:auto}
     .reader-content th,.reader-content td{border:1px solid var(--border);padding:.55rem .75rem;text-align:left}
     .reader-content th{background:var(--bg-tint);font-weight:600}
     .reader-content code{font-family:'JetBrains Mono',monospace;font-size:.86em;background:var(--bg-tint);padding:.15em .4em;border-radius:3px}
@@ -158,9 +158,6 @@
     /* Placeholder */
     .search-input::placeholder{color:var(--text-muted)}
 
-    /* Table overflow on mobile */
-    .reader-content table{display:block;overflow-x:auto}
-
     /* Details/Summary in MD content */
     .reader-content details{margin:1rem 0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
     .reader-content summary{padding:.8rem 1rem;cursor:pointer;font-weight:500;background:var(--bg-tint)}
@@ -170,9 +167,6 @@
     /* Touch target minimum */
     .topbar-back,.topbar-toc-btn{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
     .toc-drawer-item{min-height:44px;display:flex;align-items:center}
-
-    /* Progress bar aria */
-    #progress-bar{role:none}
 
     @media(max-width:640px){
       .hero-stats{gap:.6rem}
@@ -212,7 +206,7 @@
         <div class="hero-stat"><span class="hero-stat-num">62</span><span class="hero-stat-label">Core Concepts</span></div>
       </div>
       <div class="hero-links">
-        <button class="hero-cta" onclick="document.querySelector('.part-progress').scrollIntoView({behavior:'smooth'})">
+        <button type="button" class="hero-cta" onclick="document.querySelector('.part-progress').scrollIntoView({behavior:'smooth'})">
           Start Reading
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>

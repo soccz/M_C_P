@@ -37,7 +37,7 @@ function initScrollAnimations() {
     });
   }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
 
-  document.querySelectorAll('.fade-in, .slide-in-left, .stagger, .tf-step').forEach(el => {
+  document.querySelectorAll('.fade-in, .stagger, .tf-step').forEach(el => {
     observer.observe(el);
   });
 }

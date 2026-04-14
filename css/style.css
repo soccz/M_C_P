@@ -408,7 +408,7 @@ tr:hover td {
 /* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; scroll-snap-type: none; }
-  .fade-in, .slide-in-left, .tf-step {
+  .fade-in, .tf-step {
     opacity: 1;
     transform: none;
     transition: none;
@@ -608,8 +608,8 @@ tr:hover td {
   position: fixed;
   bottom: 2rem;
   right: 1.5rem;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--claude-orange-border);
   background: var(--claude-dark);
