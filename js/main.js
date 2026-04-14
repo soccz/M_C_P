@@ -316,3 +316,91 @@ window.togglePresToc = function() {
   document.getElementById('pres-toc-overlay')?.classList.toggle('open');
   document.getElementById('pres-toc-drawer')?.classList.toggle('open');
 };
+
+// ===== SLIDE SWITCHER (Mission Control style) =====
+window.openSwitcher = function() {
+  const overlay = document.getElementById('switcher-overlay');
+  const strip = document.getElementById('switcher-strip');
+  if (!overlay || !strip) return;
+
+  const slides = document.querySelectorAll('.slide');
+  const slideArr = Array.from(slides);
+
+  // Find current slide
+  const currentIdx = slideArr.findIndex(s => {
+    const rect = s.getBoundingClientRect();
+    return rect.top >= -100 && rect.top <= window.innerHeight / 2;
+  });
+
+  // Show range: current ± 4 (9 cards visible)
+  const range = 4;
+  const start = Math.max(0, currentIdx - range);
+  const end = Math.min(slideArr.length - 1, currentIdx + range);
+
+  let html = '';
+  for (let i = start; i <= end; i++) {
+    const slide = slideArr[i];
+    const title = slide.dataset.title || `Slide ${i + 1}`;
+    const isActive = i === currentIdx;
+    const cls = slide.className;
+
+    // Determine badge
+    let badge = '';
+    if (cls.includes('slide--chapter')) badge = 'Part';
+    else if (cls.includes('slide--title')) badge = 'Cover';
+    else {
+      const chMatch = title.match(/^Ch\.(\d+)/);
+      if (chMatch) badge = 'Ch.' + chMatch[1];
+    }
+
+    // Extract clean title
+    const cleanTitle = title.replace(/^Ch\.\d+\s*/, '');
+
+    // Determine visual type for desc
+    let desc = '';
+    if (cls.includes('slide--diagram')) desc = 'Diagram';
+    else if (cls.includes('slide--highlight')) desc = 'Highlight';
+    else if (cls.includes('slide--chapter')) desc = 'Chapter Break';
+
+    html += `<div class="switcher-card ${isActive ? 'active' : ''}" data-idx="${i}">
+      <div class="switcher-card-badge">${badge}</div>
+      <div class="switcher-card-title">${cleanTitle}</div>
+      ${desc ? `<div class="switcher-card-desc">${desc}</div>` : ''}
+    </div>`;
+  }
+
+  strip.innerHTML = html;
+  overlay.classList.add('open');
+
+  // Scroll to center active card
+  requestAnimationFrame(() => {
+    const activeCard = strip.querySelector('.switcher-card.active');
+    if (activeCard) {
+      activeCard.scrollIntoView({ inline: 'center', behavior: 'instant' });
+    }
+  });
+
+  // Click handler
+  strip.onclick = (e) => {
+    const card = e.target.closest('.switcher-card');
+    if (!card) return;
+    const idx = parseInt(card.dataset.idx);
+    slideArr[idx]?.scrollIntoView({ behavior: 'smooth' });
+    closeSwitcher();
+  };
+};
+
+window.closeSwitcher = function() {
+  document.getElementById('switcher-overlay')?.classList.remove('open');
+};
+
+// ESC closes switcher
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const overlay = document.getElementById('switcher-overlay');
+    if (overlay?.classList.contains('open')) {
+      closeSwitcher();
+      e.stopPropagation();
+    }
+  }
+});
