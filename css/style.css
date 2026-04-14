@@ -439,6 +439,12 @@ tr:hover td {
   [style*="grid-template-columns: repeat(3"] {
     grid-template-columns: 1fr !important;
   }
+  [style*="grid-template-columns:1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
 
   /* 2-column grids with gap:0 (split panels) → stack */
   [style*="grid-template-columns:1fr 1fr;gap:0"] {
