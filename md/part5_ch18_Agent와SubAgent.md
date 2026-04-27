@@ -161,6 +161,118 @@ Agent는 사용자의 지시를 받고, 도구를 사용하고, 결과를 보여
 
 ---
 
+## SubAgent 정의 파일 — YAML frontmatter 깊게 보기
+
+SubAgent는 **파일 하나**로 정의된다. `~/.claude/agents/` (user 스코프) 또는 `.claude/agents/` (project 스코프)에 `.md` 파일로 저장.
+
+```markdown
+---
+name: security-reviewer
+description: src/auth 코드의 보안 취약점만 찾는 SubAgent
+tools: Read, Grep, Glob
+disallowedTools: Edit, Write, Bash
+model: sonnet
+permissionMode: default
+maxTurns: 20
+isolation: none
+color: red
+---
+
+당신은 보안 리뷰어입니다. src/auth 폴더의 파일만 읽고,
+다음 취약점을 찾아 보고하세요:
+- SQL injection
+- 비밀번호 평문 저장
+- 권한 검증 누락
+
+결과는 "파일:줄번호 — 취약점 종류 — 설명" 형식으로만 출력하세요.
+```
+
+### Frontmatter 필드
+
+| 필드 | 의미 | 팁 |
+|---|---|---|
+| `name` | SubAgent 식별자 | 영문 소문자 + 하이픈, 파일명과 동일하게 |
+| `description` | 언제 호출할지 (메인이 이걸 보고 판단) | **"무엇을 찾는다"가 아니라 "언제 쓴다"** 형태로 |
+| `tools` | 허용 도구 화이트리스트 | 최소한으로. 편집 필요 없으면 Read/Grep/Glob만 |
+| `disallowedTools` | 명시적 차단 | `tools`와 중복 시 disallowed 우선 |
+| `model` | 모델 선택 (sonnet/opus/haiku) | 조사 전용은 haiku로 비용 절약 |
+| `permissionMode` | 권한 모드 (default/plan/auto 등) | Ch.6 참고 |
+| `maxTurns` | 에이전트 루프 최대 반복 | 무한 루프 방지 |
+| `isolation` | `worktree`면 별도 체크아웃 | 파일 수정 실험 시만 |
+| `color` | 로그 구분용 색상 | 팀원 간 컬러 컨벤션 정하면 편함 |
+
+### 스코프 우선순위 🆕
+
+```
+managed (조직 정책)  ← 가장 높음
+   ↓
+project (.claude/agents/)
+   ↓
+user (~/.claude/agents/)     ← 가장 낮음
+```
+
+**같은 이름**의 SubAgent가 여러 곳에 있으면 **상위가 이긴다**. 조직에서 `security-reviewer`를 managed로 지정하면 개인이 덮어쓸 수 없다 — 이게 거버넌스의 핵심 장치.
+
+### Plugin이 배포하는 SubAgent의 보안 제약
+
+Plugin으로 설치된 SubAgent는 다음 필드가 **무시된다**:
+
+```
+⚠️ Plugin SubAgent에서 무시되는 필드:
+  - hooks       (훅 실행 금지)
+  - mcpServers  (MCP 재정의 금지)
+  - permissionMode  (권한 우회 금지)
+```
+
+이유: 외부에서 받아온 Plugin이 내 보안 경계를 무너뜨릴 수 없도록 방어. 이 제약을 우회하려 하지 말고, **신뢰하는 Plugin만 설치**하는 게 원칙.
+
+---
+
+## SubAgent 체이닝 제약
+
+```
+❌ 불가능:
+  SubAgent A → 실행 중 → SubAgent B 호출
+  (중첩 spawn 불가)
+
+✅ 가능:
+  메인 Agent → SubAgent A (완료)
+  메인 Agent → SubAgent B (완료)
+  메인 Agent → 두 결과 합치기
+```
+
+**왜 이렇게?** SubAgent 중첩을 허용하면 컨텍스트·권한·토큰 회계가 엉킨다. 그래서 "메인에서 순차 체인"이라는 단순한 모델을 유지.
+
+### 체이닝 패턴
+
+```
+메인 Agent의 위임 순서:
+
+1차: SubAgent(Explore) "src/auth 구조 파악"
+      → 결과 반환
+
+2차: SubAgent(Plan) "1차 결과 바탕으로 리팩터링 계획"
+      → 결과 반환
+
+3차: SubAgent(general-purpose, 필요 시 worktree)
+      "2차 계획 실행"
+      → 결과 반환
+
+메인: 최종 검토 + 사용자 보고
+```
+
+### `tools: Agent(...)`로 위임 대상 제한
+
+SubAgent 자신이 **다른 SubAgent만 호출**하게 만들고 싶을 때:
+
+```yaml
+tools: Agent(security-reviewer, perf-reviewer)
+```
+
+→ 이 SubAgent는 `security-reviewer`와 `perf-reviewer` **둘만** 호출 가능. "리뷰 조정자" 같은 역할을 만들 때 쓴다.
+
+---
+
 ## SubAgent를 쓰는 3가지 이유
 
 ### 1. 컨텍스트 오염 방지
@@ -346,6 +458,79 @@ SubAgent + worktree:
 ```
 
 **정리: SubAgent = 컨텍스트 격리. worktree = 파일 시스템 격리. 둘을 결합하면 완전한 격리.**
+
+---
+
+## Monitor 도구 🆕 — 에이전트가 에이전트를 관찰하기
+
+SubAgent가 **"일을 시키고 결과를 받는"** 구조라면, **Monitor**는 **"일하는 중간 과정을 지켜보는"** 구조다. (2026 신규)
+
+```
+SubAgent:
+  메인 → 지시 → SubAgent가 작업 → 결과 반환 → 메인
+  (블랙박스. 중간에 뭐 하는지 메인은 모른다)
+
+Monitor:
+  메인 → 지시 → 작업자 Agent가 작업 중
+                  ↑
+                  └── Monitor Agent가 실시간 관찰 → 이상 징후 감지 시 개입
+```
+
+### Monitor가 푸는 문제
+
+SubAgent에게 큰 작업을 맡기면 **"한참 뒤에 결과가 온다"**. 그 사이에 SubAgent가 잘못된 방향으로 갔거나, 루프에 빠졌거나, 불필요한 파일을 수정해도 메인은 모른다.
+
+```
+❌ Monitor 없이:
+  SubAgent "리팩터링해줘" → 30분 실행
+  → 30분 후 결과 보니 엉뚱한 파일까지 건드림 → 롤백
+
+✅ Monitor로:
+  SubAgent "리팩터링해줘" → 실행 중
+  Monitor가 실시간 관찰:
+    "tests/ 폴더 수정 시도 감지 — 계획에 없는 파일"
+    → 즉시 중단 → 경로 재확인 후 재시작
+```
+
+### 사용 패턴
+
+```
+메인 Agent가 띄우는 도구 조합:
+
+1. 작업자 SubAgent: "src/auth/ 리팩터링 진행"
+2. Monitor 도구: "작업자의 Edit/Write 호출을 관찰.
+                 tests/ 외부 파일 수정 시도 시 알림"
+```
+
+Monitor는 Hooks(Ch.8)의 **런타임 판 사촌**이다.
+- Hooks: 정해진 이벤트(PreToolUse 등)에 조건문(`if`)으로 자동 반응
+- Monitor: 다른 Agent의 행동을 **LLM이 관찰**하면서 유연하게 판단 + 개입
+
+### Monitor vs SubAgent vs Hooks
+
+| | SubAgent | Monitor | Hooks |
+|---|---|---|---|
+| **역할** | 일을 한다 | 일하는 걸 본다 | 이벤트에 반응한다 |
+| **판단 주체** | 자기 지시 | LLM (유연) | 규칙(정적) |
+| **시점** | 작업 끝난 후 결과만 | 작업 중 실시간 | 이벤트 발생 직전/직후 |
+| **개입 방식** | 없음 (결과만 반환) | 메인에게 보고 / 중단 요청 | 차단 / 수정 / 통과 |
+| **비용** | 작업 토큰 | 관찰 토큰 추가 | 0 (규칙 실행만) |
+
+### 언제 Monitor를 쓰나
+
+```
+✅ Monitor가 적합한 경우:
+- 30분 이상 걸리는 장시간 SubAgent 작업
+- 실험적 리팩터링 (엉뚱한 방향으로 갈 위험)
+- 자동화 파이프라인에서 에이전트 체인의 중간 단계 감시
+
+❌ Monitor가 과한 경우:
+- 3-5분짜리 짧은 작업 (Hooks로 충분)
+- 파일 경로 제한 같은 정적 규칙 (Hooks의 if로 충분)
+- Explore SubAgent (편집 도구가 없어 위험이 낮음)
+```
+
+**핵심**: Monitor는 **"유연한 판단이 필요한 관찰"**에만 쓴다. 규칙으로 충분하면 Hooks가 더 싸고 빠르다.
 
 ---
 
@@ -547,4 +732,4 @@ Ch.19에서는 **토큰과 비용** — 클로드를 쓸 때 실제로 무엇이
 ## 이 챕터 핵심 3줄
 - **agentic** = 모델이 도구를 부르고 판단하는 방식. 핵심은 **관찰 → 생각 → 행동 → 반복**의 agentic loop
 - **SubAgent** = 독립 컨텍스트의 보조 에이전트. **컨텍스트 오염 방지 + 병렬 작업 + 역할 분리** 3가지가 핵심. worktree를 결합하면 파일 시스템까지 격리
-- **SubAgent는 함수다** — 자기만의 지역 변수(컨텍스트)로 작업하고 결과만 반환. 메인의 변수를 오염시키지 않는다
+- **SubAgent는 함수, Monitor는 관찰자, Hooks는 반사신경** — 셋이 다른 역할. 긴 작업 + 유연한 판단이 필요할 때만 Monitor, 정적 규칙이면 Hooks가 싸고 빠르다

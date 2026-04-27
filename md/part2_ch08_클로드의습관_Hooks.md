@@ -98,6 +98,106 @@ Claude Code에서:
 
 ---
 
+## Conditional `if` hooks 🆕 (2026-W13 추가)
+
+### 배경 — "모든 Edit에 lint를 걸면 느리다"
+
+앞서 배운 matcher는 "이 도구를 쓸 때"까지만 걸러낸다. 그런데 실무에서는 더 세밀한 조건이 자주 필요하다.
+
+- "Edit이 `src/**/*.ts`일 때만 타입체크 실행"
+- "Bash가 `npm test`일 때는 훅 건너뛰기" (어차피 테스트는 스스로 돌아가니까)
+- "Write가 새 파일일 때만 템플릿 검사"
+
+2026년 3월 말 업데이트로 **`if` 필드**가 추가됐다. matcher 아래에 조건식을 하나 더 쓸 수 있다.
+
+### 기본 문법
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "if": "tool_input.file_path matches '^src/.*\\.(ts|tsx)$'",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run typecheck"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+위 훅은:
+- **matcher**: Edit 도구일 때 발화 후보
+- **if**: 파일 경로가 `src/**/*.ts` 또는 `src/**/*.tsx`일 때만 실제 실행
+- 두 조건이 모두 맞을 때만 `npm run typecheck`가 돈다
+
+### `if` 안에서 쓸 수 있는 필드
+
+| 필드 | 의미 | 예시 |
+|---|---|---|
+| `tool_input.file_path` | Edit/Write가 건드는 파일 경로 | `tool_input.file_path matches 'src/.*'` |
+| `tool_input.command` | Bash 명령 전체 문자열 | `tool_input.command contains 'rm'` |
+| `tool_input.pattern` | Grep/Glob 패턴 | `tool_input.pattern == 'TODO'` |
+| `session.cwd` | 현재 작업 디렉터리 | `session.cwd matches '/work/api/.*'` |
+
+### 실전 예시 3종
+
+**1) 특정 폴더에만 포맷터 적용**
+
+```json
+{
+  "matcher": "Edit",
+  "if": "tool_input.file_path matches '^packages/ui/.*'",
+  "hooks": [
+    { "type": "command", "command": "cd packages/ui && npm run format" }
+  ]
+}
+```
+
+UI 패키지만 포맷하고, 백엔드 폴더는 건드리지 않는다.
+
+**2) 위험 명령을 조건부로만 차단**
+
+```json
+{
+  "matcher": "Bash",
+  "if": "tool_input.command contains 'rm -rf' and not tool_input.command contains 'rm -rf /tmp/'",
+  "hooks": [
+    { "type": "command", "command": ".claude/hooks/block.sh" }
+  ]
+}
+```
+
+`rm -rf /tmp/` 같은 안전한 임시 폴더 정리는 통과, 나머지 `rm -rf`는 차단.
+
+**3) 새 파일 생성 시에만 CLAUDE.md 갱신 제안**
+
+```json
+{
+  "matcher": "Write",
+  "if": "tool_input.file_path matches 'src/.*\\.(ts|tsx)$' and session.is_new_file",
+  "hooks": [
+    { "type": "command", "command": ".claude/hooks/suggest-claude-md-update.sh" }
+  ]
+}
+```
+
+### 왜 중요한가
+
+`if`가 없으면 훅 스크립트 안에서 직접 파일 경로를 파싱해서 걸러내야 했다. 그러면:
+- 훅 스크립트 = 로직 덩어리가 됨
+- 매번 훅이 발화되므로 속도 저하
+- 디버깅 어려움
+
+`if`는 이 필터링을 settings.json 선언부로 끌어올려서 **훅이 실제로 돌아야 할 때만 돌게** 한다. "matcher + if" 두 단계 필터링이라고 기억하면 된다.
+
+---
+
 ## settings.json의 hooks 구조
 
 Hooks는 **settings.json 안에** 정의한다. 별도 파일이 아니라 permissions와 같은 레벨의 설정이다.

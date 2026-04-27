@@ -55,17 +55,47 @@ Plugin     = 완전한 주방 세트       (레시피 + 도구 + 규칙 + 식재
 
 ```
 my-plugin/
-├── skills/            # Skill 모음
+├── .claude-plugin/         # ← 🆕 메타데이터 폴더 (이름 고정!)
+│   └── plugin.json         # 플러그인 메타데이터
+├── skills/                 # Skill 모음
 │   ├── code-review/
 │   └── deploy-check/
-├── commands/          # 커스텀 명령어 (/review, /deploy)
-├── hooks/             # Hook 설정
-├── rules/             # 규칙 파일
-├── mcp/               # MCP 서버 설정
-└── plugin.json        # 플러그인 메타데이터
+├── commands/               # 커스텀 명령어 (/review, /deploy)
+├── agents/                 # SubAgent 정의 (Ch.18)
+├── hooks/                  # Hook 설정
+├── rules/                  # 규칙 파일
+└── mcp/                    # MCP 서버 설정
 ```
 
 전부 넣을 필요는 없다. 필요한 것만 묶으면 된다.
+
+### 🆕 `.claude-plugin/plugin.json` 구조
+
+2026년 이후 플러그인 표준은 `.claude-plugin/` 폴더 안에 메타데이터를 둔다 (루트에 `plugin.json`이 바로 있던 구버전은 deprecated).
+
+```json
+// .claude-plugin/plugin.json
+{
+  "name": "code-review",
+  "version": "1.2.0",
+  "description": "팀 코드 리뷰 자동화",
+  "author": "frontend-team",
+  "homepage": "https://github.com/team/code-review",
+  "components": {
+    "skills": ["skills/review-checklist"],
+    "commands": ["commands/review.md"],
+    "agents": ["agents/security-reviewer.md"],
+    "hooks": ["hooks/post-edit-lint.json"],
+    "mcpServers": ["mcp/sentry.json"]
+  },
+  "permissions": {
+    "allow": ["Read", "Grep", "Bash(npm run lint)"],
+    "deny": ["Bash(rm *)"]
+  }
+}
+```
+
+> **자주 틀리는 포인트**: 폴더 이름은 반드시 `.claude-plugin/` (하이픈). `.claude/plugin/` 이나 `claude-plugin/` 으로 쓰면 인식 안 된다. 또 최상위 프로젝트의 `.claude/` 폴더와 혼동하지 말 것.
 
 ---
 
@@ -166,6 +196,64 @@ claude plugin enable backend-tools
 ```
 
 **작업 맥락에 따라 Plugin을 전환**할 수 있다. Ch.13에서 배운 "최소 연결" 원칙의 Plugin 버전이다.
+
+---
+
+## 🆕 Plugin 개발하기: 핫 리로드와 dev 플래그
+
+플러그인을 직접 만들 때, 설치→제거→재설치를 반복하면 피곤하다. Claude Code 2026은 개발용 플로우를 제공한다.
+
+### `--plugin-dir` 플래그로 바로 테스트
+
+```bash
+# 개발 중인 플러그인 폴더를 통째로 로드 (설치 없이)
+claude --plugin-dir ./my-plugin
+```
+
+설치 과정 없이 해당 폴더를 즉시 플러그인으로 인식한다. 코드를 고치고 세션을 다시 열 필요 없이 빠르게 테스트할 수 있다.
+
+### `/reload-plugins` 핫 리로드
+
+세션을 유지한 채 플러그인을 다시 읽게 하려면:
+
+```
+/reload-plugins
+```
+
+플러그인 파일을 수정했다면 이 명령어로 Claude Code가 최신 상태를 다시 로드한다. 매번 재시작할 필요 없다.
+
+### 마켓플레이스에 제출하기
+
+플러그인이 완성되면 공개 마켓플레이스에 올릴 수 있다:
+
+```
+https://claude.ai/settings/plugins/submit
+```
+
+제출 시 필요한 것:
+- 공개 Git 레포지토리 URL (GitHub/GitLab)
+- `.claude-plugin/plugin.json` 유효성 (name, version, description 필수)
+- README.md (사용법 설명)
+
+승인되면 `claude plugin install <이름>`으로 누구나 설치할 수 있다.
+
+---
+
+## Plugin vs Skill — 언제 어느 쪽?
+
+초보자가 자주 헷갈리는 포인트다. "내 작업 자동화를 Skill로 만들어야 해, Plugin으로 만들어야 해?"
+
+| 상황 | 고르는 것 |
+|------|----------|
+| 나 혼자 쓸 절차 하나 | **Skill** |
+| 팀원 3명과 공유할 규칙 | **Skill** (프로젝트 레벨) |
+| Skill + Hook + MCP + 명령어를 한 번에 배포 | **Plugin** |
+| 외부 공개·재배포·버전 관리 | **Plugin** |
+| Claude Code 새 사용자에게 "이것만 설치하면 끝" | **Plugin** |
+
+핵심 원칙: **Skill은 "작은 지식 조각", Plugin은 "배포 가능한 제품"**.
+
+Skill로 시작해서, 나중에 여러 Skill + Hook을 묶어 Plugin으로 승격시키는 흐름이 자연스럽다.
 
 ---
 
@@ -334,6 +422,6 @@ Part 4에서 네 가지를 배웠다: **Skill(절차)**, **MCP(연결)**, **Plug
 ---
 
 ## 이 챕터 핵심 3줄
-- **Plugin** = Skill + MCP + Hook + Command를 하나로 묶은 배포 패키지. `claude plugin install`로 한 번에 설치
+- **Plugin** = Skill + MCP + Hook + Command를 하나로 묶은 배포 패키지. 메타데이터는 `.claude-plugin/plugin.json`(폴더 이름 고정). `claude plugin install`로 한 번에 설치, `/reload-plugins`로 핫 리로드
 - **Connector** = 하나의 외부 서비스 연결. Local(같은 컴퓨터) / Remote(클라우드). Plugin 안에 포함되거나 단독 사용
 - **개인은 Skill+MCP로 충분, 팀 배포에는 Plugin** — 파이썬의 모듈 vs 패키지와 같은 관계

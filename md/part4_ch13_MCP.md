@@ -72,9 +72,9 @@ MCP는 **클라이언트-서버 모델**로 동작한다.
 
 왜 중간에 "서버"가 필요할까? **각 외부 서비스마다 API가 다르기 때문**이다. MCP 서버가 이 차이를 통일된 형식으로 바꿔준다.
 
-### 서버 통신 방식 2가지
+### 서버 통신 방식 3가지 (transport)
 
-MCP 서버는 두 가지 방식으로 통신한다:
+MCP 서버는 세 가지 transport로 통신한다:
 
 **1. stdio (표준 입출력)** — 로컬에서 실행
 
@@ -84,15 +84,43 @@ Claude Code ──stdin/stdout──▶ MCP 서버 (같은 컴퓨터)
 
 가장 흔한 방식. MCP 서버가 내 컴퓨터에서 프로세스로 실행되고, 표준 입출력으로 통신한다.
 
-**2. SSE / Streamable HTTP** — 원격에서 실행
+**2. HTTP (Streamable HTTP)** — 원격에서 실행, 권장
 
 ```
 Claude Code ──HTTP──▶ MCP 서버 (다른 서버/클라우드)
 ```
 
-MCP 서버가 원격 서버에서 실행될 때. 팀 전체가 같은 MCP 서버를 공유할 수 있다.
+MCP 서버가 원격 서버에서 실행될 때. 팀 전체가 같은 MCP 서버를 공유할 수 있다. OAuth 2.0 기반 인증을 지원한다.
 
-초보자라면 **stdio만 알면 충분**하다. 대부분의 MCP 서버가 이 방식이다.
+```bash
+# HTTP transport로 원격 MCP 서버 추가
+claude mcp add --transport http my-server https://mcp.example.com/api
+```
+
+**3. SSE (Server-Sent Events)** — 레거시, 사용 비권장
+
+2026년 현재 SSE는 **deprecated** 상태. 신규 MCP 서버는 Streamable HTTP로 통일 중이다. 기존 SSE 서버를 쓰고 있다면 HTTP로 마이그레이션하자.
+
+초보자라면 **stdio만 알면 충분**하다. 팀/원격 공유가 필요해지면 그때 HTTP.
+
+### OAuth 2.0 원격 인증
+
+원격 MCP 서버 중 다수(Notion, Linear, GitHub 등)는 OAuth로 로그인한다. Claude Code가 자동으로 브라우저를 띄우고 로그인 플로우를 처리한다.
+
+```bash
+# OAuth 플로우가 있는 MCP 서버 추가
+claude mcp add --transport http notion https://mcp.notion.com/ \
+  --client-id <CLIENT_ID> \
+  --client-secret <CLIENT_SECRET> \
+  --callback-port 8765
+```
+
+**주요 플래그**:
+- `--client-id` / `--client-secret` — OAuth 앱 자격 증명
+- `--callback-port` — 로그인 완료 후 돌아올 로컬 포트 (기본 자동)
+- `--oauth-scope` — 요청할 권한 범위 (예: `read:pages write:comments`)
+
+첫 호출 시 브라우저가 열리고, 승인하면 토큰이 자동 저장된다. 다음부터는 재인증 없이 쓸 수 있다.
 
 ---
 
@@ -430,6 +458,78 @@ MCP 설정도 Ch.6에서 배운 범위(scope) 개념이 적용된다.
 
 ---
 
+## MCP가 노출하는 3종: Tools / Resources / Prompts
+
+지금까지 "MCP 도구"라는 말만 썼지만, MCP 서버는 실제로는 **3가지 primitive**를 노출한다. 셋의 차이를 알면 토큰 예산을 훨씬 정확히 쓸 수 있다.
+
+| 종류 | 정체 | 컨텍스트 비용 | 예시 |
+|------|------|--------------|------|
+| **Tools** | 클로드가 호출하는 액션 (function) | 설명만으로도 토큰 소모 | `slack_send_message`, `db_query` |
+| **Resources** | 클로드가 읽을 수 있는 데이터 (URI) | 호출할 때만 로드 | `file://...`, `db://schema/users` |
+| **Prompts** | 미리 정의된 프롬프트 템플릿 | 선택적으로 로드 | "이 PR을 리뷰해줘" 템플릿 |
+
+```
+비유로:
+  Tools     = 동사 (실행한다)
+  Resources = 명사 (읽는다)
+  Prompts   = 대본 (꺼내 쓴다)
+```
+
+대부분의 MCP 서버는 Tools만 쓰지만, Resources와 Prompts를 쓸 수 있는 서버라면 **Resources 쪽이 토큰에 덜 불리**하다. 가능하면 resources 기반 서버를 선호.
+
+---
+
+## 동적 업데이트: `list_changed`
+
+MCP 서버는 실행 중에 **도구 목록이 바뀔 수 있다**. 예를 들어 Notion MCP는 연결된 워크스페이스에 새 페이지가 생기면 "이 페이지 읽기" 도구가 새로 생긴다.
+
+이때 서버가 `list_changed` 알림을 보내면 Claude Code가 도구 목록을 자동으로 갱신한다.
+
+```
+서버: "도구 목록이 바뀌었어요 (list_changed)"
+Claude Code: "알았어, 목록 다시 가져갈게"
+  → 새 도구 설명이 컨텍스트에 추가됨
+```
+
+**연결이 끊어지면?** Claude Code가 자동으로 재연결을 시도한다 (최대 5회, 지수 backoff). 5회 후에도 실패하면 에러를 표시한다.
+
+---
+
+## 서버 중간 입력: Elicitation
+
+일부 MCP 서버는 작업 도중에 **추가 입력을 요청**할 수 있다. 예: 결제 MCP가 "이 금액 결제하시겠습니까?" 물어보는 상황.
+
+이게 **elicitation**이다. 3가지 모드:
+
+| 모드 | 서버가 요청하는 것 | UI |
+|------|-------------------|-----|
+| **form** | 구조화된 필드 (금액, 계정 등) | 폼 |
+| **text** | 자유 텍스트 | 텍스트 박스 |
+| **confirm** | 예/아니오 | 확인 버튼 |
+
+```
+MCP 서버 ──"결제 금액 확인해주세요 (form)"──▶ Claude Code
+Claude Code ──사용자에게 폼 표시──▶ 사용자
+사용자 ──입력──▶ Claude Code ──▶ MCP 서버
+```
+
+보안적으로 중요한 작업(결제, 삭제, 전송)을 MCP가 수행할 때 꼭 확인하라.
+
+---
+
+## 프로젝트 scope 초기화
+
+`.claude/settings.json`에 MCP 설정이 쌓이다 보면 "한 번 거부한 서버"가 계속 남는 경우가 있다. 이럴 때:
+
+```bash
+# 프로젝트의 모든 MCP 선택(승인/거부)을 초기화
+claude mcp reset-project-choices
+```
+
+다음부터 이 프로젝트에서 각 MCP 서버에 대해 처음부터 다시 승인 프롬프트가 뜬다. MCP 서버를 팀원과 공유할 때 유용.
+
+---
+
 ## 파이썬 연결: 외부 라이브러리 (import)
 
 MCP의 핵심은 **외부 도구를 가져와서 쓰는 것**이다. 파이썬에서 이 개념이 바로 **import**다.
@@ -535,6 +635,6 @@ Ch.14에서는 Skills, MCP, Hooks, 명령어 등을 **하나의 패키지로 묶
 ---
 
 ## 이 챕터 핵심 3줄
-- **MCP** = 클로드와 외부 도구를 연결하는 표준 인터페이스. `claude mcp add`로 설치, 스마트폰에 앱 깔듯이
-- **토큰 주의**: MCP 도구 출력이 컨텍스트를 많이 먹는다. "최소 연결, 필요한 것만" 원칙 필수
+- **MCP** = 클로드와 외부 도구를 연결하는 표준 인터페이스. transport는 stdio(로컬)/HTTP(원격, 권장)/SSE(deprecated) 3가지. 원격은 OAuth 2.0으로 로그인
+- **3종 primitive** — Tools(동사) / Resources(명사) / Prompts(대본). Tools는 설명만으로 토큰 소모, Resources는 호출할 때만 로드. "최소 연결" 원칙 필수
 - **파이썬 import와 같은 원리** — 외부 능력을 가져오되, 안 쓰는 건 연결하지 않는다

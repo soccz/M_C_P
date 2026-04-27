@@ -149,6 +149,49 @@ Claude Code는 매 턴(turn)마다 **전체 컨텍스트를 다시 보낸다.**
 - **중간에 오래 멈추면 비용이 올라간다** (캐시 만료)
 - **새 세션을 시작하면 캐시가 없다** (처음부터 다시)
 
+### 캐시 TTL 제어하기 🆕
+
+5분 TTL이 기본이지만, 2026년에 **환경변수로 TTL을 조정하는 기능**이 추가됐다. 긴 호흡으로 작업할 때 유용하다.
+
+| 환경변수 | 효과 | 언제 쓰나 |
+|---|---|---|
+| `ENABLE_PROMPT_CACHING_1H=1` | 5분 TTL 대신 **1시간 TTL** 사용 | 긴 호흡 작업, 미팅 중간에도 캐시 유지하고 싶을 때 |
+| `FORCE_PROMPT_CACHING_5M=1` | 1시간이 기본이어도 **5분 TTL로 강제** | 짧은 세션, 캐시 오버헤드 줄이고 싶을 때 |
+
+### 사용법
+
+```bash
+# .env 파일이나 셸에서
+export ENABLE_PROMPT_CACHING_1H=1
+claude
+```
+
+또는 한 번만 쓰고 싶으면:
+```bash
+ENABLE_PROMPT_CACHING_1H=1 claude
+```
+
+### 1시간 TTL의 트레이드오프
+
+**장점:**
+- 미팅/점심/화장실 다녀와도 캐시 유지 → cache read 비용 유지
+- 긴 호흡 작업(리팩터링, 설계 회의) 적합
+
+**단점:**
+- **cache write 비용이 5분 TTL보다 약 2배 비싸다** (1.25배 → 2배)
+- 짧은 세션에서는 손해 — 캐시를 만들었는데 얼마 안 써먹고 세션이 끝남
+
+### 판단 기준
+
+```
+짧은 작업(30분 이내)       → 기본 5분 TTL
+긴 리팩터링/설계(1~3시간) → ENABLE_PROMPT_CACHING_1H=1
+실험/탐색 (정해진 호흡 없음) → 기본 5분
+팀 공유 세션(일시 중단 많음) → ENABLE_PROMPT_CACHING_1H=1
+```
+
+> 실무 팁: 이 env var를 `~/.claude/settings.json`의 `"env"` 섹션에 넣어두면 전역 적용된다. 하지만 **프로젝트마다 다른 호흡**을 쓴다면 `.claude/settings.json`에 프로젝트별로 넣는 게 낫다.
+
 ---
 
 ## 비용이 빠지는 5가지 구간
@@ -353,6 +396,80 @@ Claude Console → Settings → Workspace → Spend Limits
 
 이것은 "나도 모르게 비용이 폭주하는 것"을 방지하는 안전장치다. 특히 여러 명이 API를 사용하는 팀에서 필수적이다.
 
+### TPM / RPM — 속도 제한
+
+예산 말고도 "속도"에 제한이 걸린다.
+
+| 이름 | 의미 | 걸리면 |
+|------|------|-------|
+| **TPM** (Tokens Per Minute) | 분당 처리 가능 토큰 | 429 에러, 잠시 대기 |
+| **RPM** (Requests Per Minute) | 분당 요청 횟수 | 429 에러, 잠시 대기 |
+
+```
+기본 Tier (Console):
+  TPM: 40,000 ~ 80,000 (모델별 다름)
+  RPM: 50 ~ 4,000
+```
+
+한도는 사용량이 쌓이면 자동으로 올라간다(Tier 1→2→3...). 갑자기 429가 뜨면 그 분만 쉬고 재시도하면 된다. Claude Code는 기본 백오프(지수 대기)를 내장하고 있어 대부분 투명하게 처리된다.
+
+**Tip**: SubAgent를 많이 병렬로 띄우면 RPM에 먼저 걸린다. 팀 단위로 쓸 때는 Tier 확인 필수.
+
+---
+
+## 🆕 관측과 감사 — 2026 운영 도구
+
+혼자 쓸 때는 `/cost` 하나면 충분하다. 하지만 팀/조직 단위로 쓰기 시작하면 **"누가, 어디에, 얼마나"**를 한눈에 보고 싶어진다. 2026년 Claude Code는 관측을 위한 세 가지 수단을 제공한다.
+
+### 1. Analytics 대시보드 — 어디서 봐야 하나
+
+**중요한 구분**: Analytics 대시보드는 **두 군데**가 있는데 성격이 다르다.
+
+| 대시보드 | 대상 | 경로 | 보여주는 것 |
+|---------|------|------|------------|
+| **Teams/Enterprise 대시보드** | 구독 팀 관리자 | claude.ai/settings (admin) | 팀원별 사용 요약, 활성 사용자 수, MAU |
+| **Console 대시보드** | API 조직 관리자 | console.anthropic.com | 워크스페이스별 토큰·비용, 모델별 분포, Caching 적중률 |
+
+둘은 **같은 사용자의 활동을 다른 관점**으로 본다. Teams가 "얼마나 쓰는가(빈도)", Console이 "얼마나 드는가(비용)"에 가깝다.
+
+### 2. Contribution metrics + GitHub App
+
+Teams/Enterprise 플랜에는 "클로드가 실제로 코드에 얼마나 기여했는가"를 측정하는 **contribution metrics**가 있다. GitHub App을 연결하면 PR 단위로:
+
+- 클로드가 작성한 줄 수 / 사람이 작성한 줄 수
+- 리뷰 반영률
+- 시간 절감 추정치
+
+**ZDR 환경에서의 제약**: Zero Data Retention(ZDR, Ch.28 참고)을 켠 조직은 contribution metrics의 일부 데이터가 수집되지 않는다. 프라이버시를 강화하면 세부 지표는 포기해야 하는 트레이드오프다.
+
+### 3. OpenTelemetry 연동
+
+자체 관측 스택(Datadog, Grafana, Honeycomb 등)이 있는 조직은 OpenTelemetry로 내보낼 수 있다.
+
+```bash
+# .env 또는 settings.json의 env 섹션
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://otel.example.com:4318"
+export OTEL_EXPORTER_OTLP_HEADERS="api-key=<YOUR_KEY>"
+export CLAUDE_CODE_ENABLE_TELEMETRY=1
+```
+
+내보내지는 신호:
+- **metrics**: 토큰 소비, API 지연, 도구 호출 빈도
+- **traces**: 한 세션의 요청→응답→도구 호출 체인
+- **logs**: 에러, 거부된 권한 요청
+
+이게 유용한 이유: 내부 SLA/알림 시스템과 **같은 파이프라인**에 붙일 수 있다. Claude Code만의 별도 대시보드를 운영할 필요가 없다.
+
+### 언제 뭘 쓰나
+
+```
+나 혼자 / 주니어 단계       → /cost 만
+팀 2~5명                   → Teams 대시보드
+조직 전체 / 예산 관리       → Console 대시보드 + Spend Limits
+보안/감사 요건              → OpenTelemetry + 내부 SIEM
+코드 기여 증명 / ROI 보고   → Contribution metrics + GitHub App
+```
+
 ---
 
 ## AI factory와 토큰 공장
@@ -485,3 +602,4 @@ Part 6에서는 **Cowork** — 클로드에게 작업을 완전히 맡기는 방
 - **input token**(읽기) + **output token**(쓰기). output이 5배 비싸다. **Prompt Caching**으로 반복되는 input을 1/10 비용으로
 - **비용이 빠지는 5구간**: 도구 출력(가장 큼) > 긴 세션 > SubAgent 중복 > MCP 설정 > 규칙 파일. /cost로 습관적 확인
 - **구조로 줄인다**: 짧은 계획+긴 실행 분리, diff 위주 작업, worktree 격리, SubAgent 활용, 세션 위생
+- **관측은 3층**: 개인은 `/cost`, 팀은 Teams/Console 대시보드, 조직은 OpenTelemetry로 내부 관측 스택에 통합. TPM/RPM 한도와 Spend Limits는 함께 관리

@@ -206,8 +206,8 @@ my-project/
 |------|------|-----------|
 | **about-me.md** | 나는 누구인가, 선호 스타일 | Cowork용 (Ch.21) |
 | **working-rules.md** | 작업 태도와 금지 사항 | Cowork용 (Ch.21) |
-| **brand-voice.md** | 브랜드 톤과 문체 | 마케팅/콘텐츠 (Ch.25) |
-| **glossary.md** | 용어 정의 | 팀 작업 시 (Ch.26) |
+| **brand-voice.md** | 브랜드 톤과 문체 | 마케팅/콘텐츠 (Ch.27) |
+| **glossary.md** | 용어 정의 | 팀 작업 시 (Ch.28) |
 | **CLAUDE.md** | 프로젝트 규칙 | **지금!** |
 | **plan.md** | 현재 작업 계획 | 작업 시작할 때 (Ch.17) |
 | **handoff.md** | 인수인계 메모 | 세션 끝날 때 (Ch.17) |

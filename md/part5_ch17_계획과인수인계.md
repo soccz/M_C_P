@@ -1,6 +1,6 @@
 # Ch.17 계획과 인수인계
 
-> **이 챕터를 마치면**: plan.md, handoff.md, verify.md의 역할과 작성법을 이해한다. Plan Mode로 계획과 실행을 분리하고, AskUserQuestion과 Approval로 협업 품질을 높이는 방법을 실천할 수 있다.
+> **이 챕터를 마치면**: plan.md, handoff.md, verify.md의 역할과 작성법을 이해한다. Plan Mode / Ultraplan / Ultrareview / Checkpointing / Todo Lists까지 — 2026에 새로 붙은 계획·검토 도구들을 구분해서 쓸 수 있다.
 
 ---
 
@@ -224,6 +224,43 @@ Plan Mode에서 클로드는:
 
 ---
 
+## `/ultraplan` 🆕 — Plan Mode의 심화판
+
+Plan Mode가 "**넓게** 조사해서 계획을 세운다"라면, **Ultraplan**은 여기에 "**깊이**"를 더한 모드다. (2026 신규)
+
+```bash
+/ultraplan 회원가입 기능 추가
+```
+
+### Plan Mode vs Ultraplan
+
+| | Plan Mode | Ultraplan 🆕 |
+|---|---|---|
+| **조사 범위** | 관련 파일 위주 | 관련 파일 + 의존성 + 비슷한 과거 PR/커밋 |
+| **계획 깊이** | 단계별 나열 | 단계별 + **각 단계의 리스크/대안**까지 |
+| **Thinking** | 기본 수준 | **Extended thinking** 자동 활성화 |
+| **시간** | 분 단위 | 수 분 (조사가 많아서) |
+| **토큰** | 보통 | 많음 |
+| **적합** | 중간 규모 작업 | 큰 규모 / 리스크 높은 작업 |
+
+### 언제 Ultraplan을 쓰나
+
+```
+✅ Ultraplan이 필요한 경우:
+- 배포 경로가 복잡한 변경 (DB 마이그레이션, API breaking change)
+- 보안에 영향이 있는 작업
+- "처음 해보는 작업 — 뭘 모르는지도 모르겠다"
+- Plan Mode를 돌렸는데 계획이 얕게 느껴질 때
+
+❌ Ultraplan이 과한 경우:
+- 이미 Plan Mode로 충분한 경우
+- 토큰 예산이 빠듯할 때 (Ch.19 참고)
+```
+
+**한 줄 요약**: Plan Mode = 지도 그리기. Ultraplan = 지도 + 위험 구간 표시 + 대안 경로.
+
+---
+
 ## AskUserQuestion — 구조화된 질문 수집
 
 클로드가 불확실한 부분을 만났을 때, **추측하지 않고 물어보게** 하는 도구.
@@ -303,6 +340,127 @@ handoff.md → "뭘 했는지" 사후 기록
 
 ---
 
+## Checkpointing 🆕 — "이 시점으로 돌아가기"
+
+Approval이 **위험한 걸 막는** 도구라면, **Checkpointing**은 **잘못되면 되돌리는** 도구다. (2026 신규)
+
+Checkpoint는 세션의 **특정 시점을 저장**해두는 기능이다. 나중에 "그때 그 상태로 돌아갈래" 한 줄이면 끝난다.
+
+### 기본 동작
+
+```
+세션 진행:
+  [T0: 계획 확정]
+  [T1: src/auth 수정 완료] ← /checkpoint "auth 완성"
+  [T2: UI 연결 시도]
+  [T3: UI 연결 실패, 롤백 필요]
+  
+  → /checkpoint list
+    1. auth 완성 (T1)
+  → /checkpoint restore 1
+    → 파일도 대화도 T1 상태로 복원
+```
+
+**파일 상태 + 대화 컨텍스트**를 함께 저장한다. Git의 commit과 다른 점:
+- Git commit = 파일만
+- Checkpoint = 파일 + 대화 + 클로드 기억
+
+### Checkpoint vs Git commit vs handoff.md
+
+| | Checkpoint 🆕 | Git commit | handoff.md |
+|---|---|---|---|
+| **저장 대상** | 파일 + 대화 | 파일만 | 상태 메모(텍스트) |
+| **복원 속도** | 즉시 (한 줄) | 파일만 빠름, 대화는 불가 | 수동 (메모 읽고 재구성) |
+| **공유** | 내 세션 안에서만 | 팀 전체 | 팀/다음 세션 |
+| **용도** | 실험적 시도, 즉시 롤백 | 영구 기록 | 장기 인수인계 |
+
+### 언제 Checkpoint를 찍나
+
+```
+✅ Checkpoint 찍는 타이밍:
+- 큰 단계를 끝냈을 때 ("auth 완성" 같은)
+- 위험한 작업 직전 ("DB 마이그레이션 시도" 직전)
+- 여러 접근법을 비교할 때 ("방법 A 시도 전")
+
+❌ 불필요한 타이밍:
+- 매 Edit마다 (너무 잦음)
+- 이미 git commit 한 직후 (중복)
+```
+
+### Checkpoint + Approval 조합
+
+```
+[T0: /checkpoint "DB 마이그 직전"]
+[T1: approval → DB 마이그 실행]
+  ├── 성공 → 그대로 진행
+  └── 실패 → /checkpoint restore → T0으로 돌아감 → 재시도
+```
+
+**Approval이 "하기 전 관문"**이라면, **Checkpoint는 "하고 나서 되돌릴 보험"**이다. 함께 쓰면 위험한 작업을 훨씬 과감하게 시도할 수 있다.
+
+---
+
+## Todo Lists 🆕 — 세션 안의 할일 목록
+
+큰 작업을 중간에 놓치지 않게 하는 **세션 내부 할일 목록** 도구다. (2026 정식화)
+
+```
+사용자: "이 리팩터링 3단계로 쪼개서 진행해"
+
+클로드의 TaskCreate 호출:
+  1. [pending] src/auth/*.ts 타입 정리
+  2. [pending] tests/auth 업데이트
+  3. [pending] 통합 테스트 실행
+
+작업 중 TaskUpdate:
+  1. [completed] src/auth/*.ts 타입 정리  ← 방금 끝
+  2. [in_progress] tests/auth 업데이트   ← 지금 작업 중
+  3. [pending] 통합 테스트 실행
+```
+
+### Todo Lists vs plan.md
+
+| | Todo Lists 🆕 | plan.md |
+|---|---|---|
+| **저장 위치** | 세션 메모리 | 파일 (디스크) |
+| **수명** | 세션 종료 시 사라짐 | 영구 |
+| **갱신 주체** | 클로드가 자동 | 사람이 수동 |
+| **용도** | 작업 중 진행 추적 | 시작 전 계획서 |
+
+**둘은 경쟁 관계가 아니다**. plan.md로 계획을 짠 뒤, 세션에 들어가면 그 단계들을 Todo Lists로 옮겨서 진행 상태를 실시간으로 추적한다.
+
+```
+plan.md (시작 전)
+  └── [단계 1] src/auth 타입 정리
+  └── [단계 2] 테스트 업데이트
+  └── [단계 3] 통합 테스트
+
+↓ 세션 시작, TaskCreate로 옮기기
+
+Todo Lists (세션 중)
+  [in_progress] 단계 1
+  [pending] 단계 2, 3
+      ↓ 실시간 TaskUpdate
+  [completed] 단계 1
+  [in_progress] 단계 2
+  ...
+```
+
+### 언제 Todo Lists를 쓰나
+
+```
+✅ 필요한 경우:
+- 3단계 이상으로 쪼갤 수 있는 작업
+- 중간에 컨텍스트가 바뀌어도 놓치면 안 되는 단계가 있을 때
+- SubAgent에게 맡기는 작업의 진행 상태 추적
+
+❌ 불필요한 경우:
+- 1-2단계로 끝나는 단순 작업
+- 이미 plan.md가 체크리스트 형태로 명시되어 그대로 따라가면 되는 경우
+```
+
+---
+
 ## Review Split — 구현과 검토를 나눈다
 
 Ch.11에서 배운 **컨텍스트 격리**의 실전 패턴.
@@ -344,6 +502,52 @@ claude
 
 ---
 
+## `/ultrareview` 🆕 — Review Split의 자동화판
+
+Review Split을 수동으로 돌리는 대신, 한 줄로 **깊은 리뷰**를 시키는 명령이다. (2026 신규)
+
+```bash
+/ultrareview           # 마지막 변경분 리뷰
+/ultrareview HEAD~3..  # 최근 3커밋 리뷰
+```
+
+### Ultrareview가 하는 일
+
+1. 변경분(diff)을 전부 읽는다
+2. 관련 파일과 테스트를 함께 조사한다
+3. **Extended thinking**으로 깊이 판단한다
+4. 카테고리별 리뷰 출력:
+   - 🔴 Critical (버그, 보안)
+   - 🟡 Warning (개선 여지)
+   - 🟢 OK (잘 된 점)
+
+### `/ultrareview` vs Review Split vs SubAgent 리뷰
+
+| | Review Split | SubAgent 리뷰 | Ultrareview 🆕 |
+|---|---|---|---|
+| **실행 방식** | 새 세션 수동 시작 | Agent 도구 호출 | 슬래시 명령 한 줄 |
+| **깊이** | 프롬프트 따라 다름 | 프롬프트 따라 다름 | **Extended thinking 자동** |
+| **편향** | 신선한 시선 | 신선한 시선 | 신선한 시선 |
+| **토큰** | 새 세션 전체 | SubAgent 토큰 | 많음 (extended thinking) |
+| **추천 상황** | 큰 리팩터링 종료 후 | 여러 관점 병렬 | 배포 직전 마지막 점검 |
+
+### 언제 Ultrareview를 쓰나
+
+```
+✅ 적합:
+- 배포 직전 최종 검토
+- 보안/성능 영향이 큰 변경
+- "놓친 게 있을 것 같은 찜찜함"이 드는 PR
+
+❌ 과한 경우:
+- 오타 수정, 단순 리네이밍
+- 이미 Review Split으로 한 번 본 변경
+```
+
+**정리**: Plan Mode가 **시작**의 기본이라면, Ultraplan은 **시작의 심화**. Review Split이 **검토**의 기본이라면, Ultrareview는 **검토의 심화**. 심화판은 **토큰이 더 든다** — 아낄 때는 기본, 확실히 하고 싶을 때는 Ultra.
+
+---
+
 ## 전체 작업 흐름 — 파일들의 관계
 
 ```
@@ -353,78 +557,125 @@ claude
 plan.md 작성 ──── "뭘 할 건지"
   │
   ▼
-Plan Mode로 조사+계획 확인
+Plan Mode (또는 Ultraplan 🆕) — 조사+계획 확인
+  │
+  ▼
+세션 진입 → Todo Lists 🆕로 단계 옮기기
   │
   ▼
 구현 시작
   │
-  ├── AskUserQuestion ── "불확실하면 물어보기"
-  ├── Approval ────────── "위험하면 승인받기"
+  ├── AskUserQuestion ──── "불확실하면 물어보기"
+  ├── Approval ─────────── "위험하면 승인받기"
+  ├── Checkpoint 🆕 ──── "큰 단계 끝날 때 저장"
   └── verify.md 기준으로 검증
   │
   ▼
-handoff.md 작성 ── "어디까지 했는지"
+handoff.md 작성 ──── "어디까지 했는지"
   │
   ▼
-(선택) Review Split ── "새 세션에서 리뷰"
+(선택) Review Split / Ultrareview 🆕 ──── "새 시선으로 리뷰"
   │
   ▼
-decision-log.md ──── "왜 이렇게 했는지" (필요시)
+decision-log.md ────── "왜 이렇게 했는지" (필요시)
 ```
 
 ---
 
-## 파이썬 연결: 클래스와 메서드
+## 🐍 리스트 — 계획·할일·체크포인트의 공통 뼈대
 
-계획과 인수인계는 **작업을 구조화**하는 것이다. 파이썬에서 데이터와 동작을 구조화하는 방법이 바로 **클래스(class)**다.
+plan.md의 단계, Todo Lists의 할일, Checkpoint 목록, handoff.md의 "끝난 것/막힌 점" — 이 모두가 결국 **순서 있는 항목 묶음**이다. 파이썬에서 이걸 표현하는 기본 도구가 **리스트(list)**다.
 
-### 클래스 — 데이터와 동작을 묶는 것
-
-```python
-class WorkSession:
-    """작업 세션을 구조화하는 클래스"""
-    
-    def __init__(self, goal):
-        self.goal = goal          # plan.md의 목표
-        self.done = []            # handoff.md의 끝난 것
-        self.blocked = []         # handoff.md의 막힌 점
-        self.decisions = []       # decision-log.md
-    
-    def plan(self):
-        """계획 세우기 (plan.md)"""
-        print(f"목표: {self.goal}")
-        print("단계를 정리합니다...")
-    
-    def handoff(self):
-        """인수인계 작성 (handoff.md)"""
-        print(f"끝난 것: {self.done}")
-        print(f"막힌 점: {self.blocked}")
-    
-    def verify(self, checks):
-        """검증 (verify.md)"""
-        for check in checks:
-            result = "✅" if check["passed"] else "❌"
-            print(f"{result} {check['name']}")
-```
-
-### 사용 예시
+### 리스트 — 순서 있는 데이터 모음
 
 ```python
-# 세션 시작 = 인스턴스 생성
-session = WorkSession("비밀번호 검증 버그 수정")
+# 대괄호 [] 안에 콤마로 항목을 나열
+steps = ["타입 정리", "테스트 업데이트", "통합 테스트"]
+print(steps)
+# ['타입 정리', '테스트 업데이트', '통합 테스트']
 
-# plan.md = 계획 메서드
-session.plan()
-
-# 작업 진행
-session.done.append("validatePassword 수정")
-session.decisions.append("JWT + 리프레시 토큰 선택")
-
-# handoff.md = 인수인계 메서드
-session.handoff()
+# 순서가 있다 → 인덱스로 접근 (0부터 시작)
+print(steps[0])   # 타입 정리
+print(steps[1])   # 테스트 업데이트
+print(steps[-1])  # 통합 테스트 (뒤에서 첫 번째)
 ```
 
-**plan.md = 시작 메서드, handoff.md = 종료 메서드, verify.md = 검증 메서드.** 작업 세션을 하나의 구조체로 관리하는 것이다.
+### 리스트의 핵심 동작 — plan.md 단계 관리
+
+```python
+# 1) append — 뒤에 추가 (= 단계 추가)
+steps = ["타입 정리"]
+steps.append("테스트 업데이트")
+steps.append("통합 테스트")
+# ['타입 정리', '테스트 업데이트', '통합 테스트']
+
+# 2) remove — 특정 값 제거 (= 단계 삭제)
+steps.remove("테스트 업데이트")
+# ['타입 정리', '통합 테스트']
+
+# 3) len — 개수 (= 남은 단계 수)
+print(len(steps))  # 2
+
+# 4) in — 포함 여부 (= 이 단계 있나?)
+print("타입 정리" in steps)  # True
+```
+
+### Todo Lists를 리스트로 표현
+
+Claude의 Todo Lists는 결국 **상태가 붙은 항목들의 리스트**다. 딕셔너리(Ch.7에서 배움)를 리스트 안에 넣으면 그대로 표현된다.
+
+```python
+todos = [
+    {"subject": "타입 정리",     "status": "completed"},
+    {"subject": "테스트 업데이트", "status": "in_progress"},
+    {"subject": "통합 테스트",    "status": "pending"},
+]
+
+# 지금 진행 중인 할일만 찾기
+for t in todos:
+    if t["status"] == "in_progress":
+        print(f"지금 작업 중: {t['subject']}")
+# 지금 작업 중: 테스트 업데이트
+
+# 완료된 개수 세기
+done_count = 0
+for t in todos:
+    if t["status"] == "completed":
+        done_count += 1
+print(f"완료: {done_count}/{len(todos)}")
+# 완료: 1/3
+```
+
+### Checkpoint 목록도 리스트
+
+```python
+checkpoints = []
+
+# 체크포인트 찍기
+checkpoints.append({"name": "auth 완성",        "time": "10:15"})
+checkpoints.append({"name": "DB 마이그 직전", "time": "11:02"})
+
+# 목록 보기 (= /checkpoint list)
+for i, cp in enumerate(checkpoints, start=1):
+    print(f"{i}. {cp['name']} ({cp['time']})")
+# 1. auth 완성 (10:15)
+# 2. DB 마이그 직전 (11:02)
+
+# 마지막 체크포인트로 복원 (= /checkpoint restore)
+latest = checkpoints[-1]
+print(f"복원 대상: {latest['name']}")
+```
+
+### 왜 리스트인가 — "순서가 있다"
+
+plan.md의 단계는 **순서**가 중요하다 ("1단계 → 2단계"). Todo Lists도 순서를 본다. Checkpoint도 **시간 순서**로 쌓인다.
+
+파이썬에서 **순서가 있는 모음**은 리스트가 기본이다. `{ }`로 묶이는 딕셔너리(순서보다 키-값 매칭이 중요)와 정반대의 쓰임이다.
+
+**핵심 요약**:
+- plan의 단계, Todo의 할일, Checkpoint의 저장점 = 모두 **순서 있는 모음**
+- 파이썬에서 이 개념은 **리스트** 하나로 충분
+- 항목 하나에 여러 속성(상태·시간·이름)이 필요하면 **리스트 안에 딕셔너리**를 넣는다 (`[{}, {}, {}]`)
 
 ---
 
@@ -458,6 +709,6 @@ Ch.18에서는 **Agent와 SubAgent** — 클로드가 다른 클로드에게 일
 ---
 
 ## 이 챕터 핵심 3줄
-- **plan.md** = 시작 전 계획 (목표+완료기준+단계). 방향 확인 후 코드 시작. **handoff.md** = 끝날 때 인수인계 (끝난 것+막힌 점+다음)
-- **Plan Mode**(Shift+Tab 2번) = 넓게 조사 후 계획. **AskUserQuestion** = 추측 대신 질문. **Approval** = 위험 시 승인
-- **Review Split** = 구현 세션과 리뷰 세션을 분리. 새 세션의 신선한 시선으로 버그를 잡는다
+- **기본 세트**: plan.md(시작) / handoff.md(끝) / verify.md(기준) + Plan Mode(넓게 조사) + AskUserQuestion(추측 대신 질문) + Approval(위험 시 승인)
+- **2026 심화판 🆕**: `/ultraplan`(계획의 깊이) · **Todo Lists**(세션 내 진행 추적) · **Checkpointing**(되돌릴 보험) · `/ultrareview`(리뷰의 깊이) — 토큰 더 쓰고 확실하게
+- **파이썬 뼈대** = **리스트**. plan의 단계, Todo의 할일, Checkpoint의 저장점 모두 순서 있는 모음. 속성이 많으면 `[{}, {}, {}]`

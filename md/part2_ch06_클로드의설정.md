@@ -173,14 +173,32 @@ claude --dangerously-skip-permissions   # 주의: 모든 권한 확인을 건너
 - **단점**: 잘못된 명령도 바로 실행됨
 - **추천**: 실험 환경, 안전한 테스트 환경에서만. **프로덕션 절대 금지**
 
-### 5. auto — 자동 판단 모드
+### 5. auto — 자동 판단 모드 🆕 (2026-W13 Research Preview)
 
 ```bash
 claude --permission-mode auto
 ```
 
-- 클로드가 **위험도를 스스로 판단**해서 안전한 작업은 자동 실행, 위험한 작업은 물어봄
-- default와 비슷하지만, 도구별 판단이 더 세밀함
+**2026년 3월 말에 추가된 가장 중요한 모드다.** default와 `--dangerously-skip-permissions` 사이의 **중간 지대**를 메운다.
+
+동작 방식:
+- 권한이 필요한 순간마다 **분류기(classifier)**가 동작을 분석한다
+- 안전한 동작 (읽기, 테스트 실행, 일반적인 편집) → **자동 실행**
+- 위험한 동작 (rm, .env 접근, git push --force, 외부 네트워크 호출) → **차단 또는 질문**
+- default처럼 매번 묻지 않고, bypass처럼 무모하지도 않다
+
+```
+default           → 모르면 다 묻는다 (승인 피로)
+auto 🆕           → 분류기가 판단: 안전하면 자동, 위험하면 차단
+bypassPermissions → 전부 허용 (위험)
+```
+
+언제 쓰나:
+- 신뢰 가능한 작업 환경 (개인 레포, 테스트 브랜치)
+- "승인 버튼 피로"는 줄이되 "rm 사고"는 막고 싶을 때
+- Research preview 단계이므로 **프로덕션 중요 작업에는 default 권장**
+
+> Research preview 주의: 분류기 판단이 항상 완벽하지 않다. 중요한 작업은 여전히 default로 시작하고, 반복 작업이 많아졌을 때만 auto로 전환하자.
 
 ### 6. dontAsk — 질문 안 하기 모드
 
@@ -198,7 +216,7 @@ claude --permission-mode dontAsk
 | **default** | ★★☆ | ★★★ | 처음, 낯선 프로젝트 |
 | **plan** | ★☆☆ | ★★★★ | 복잡한 작업, 팀 리뷰 |
 | **acceptEdits** | ★★★ | ★★☆ | 반복 수정, 신뢰된 작업 |
-| **auto** | ★★★ | ★★★ | 일반 작업, 위험도 자동 판단 |
+| **auto** 🆕 | ★★★ | ★★★ | 분류기가 판단: 안전하면 자동, 위험하면 차단 (preview) |
 | **dontAsk** | ★★★ | ★★☆ | 자동화 파이프라인 |
 | **bypassPermissions** | ★★★★ | ★☆☆ | 실험 환경만 |
 
@@ -206,7 +224,8 @@ claude --permission-mode dontAsk
 1. 처음에는 **default**로 시작
 2. 익숙해지면 **acceptEdits**
 3. 복잡한 작업에는 **plan**
-4. **bypassPermissions**는 나중에, 안전한 환경에서만
+4. 승인 피로가 심해지면 **auto**로 전환 🆕 (preview 단계임을 감안)
+5. **bypassPermissions**는 나중에, 안전한 환경에서만
 
 > settings.json에서 기본 모드를 고정하려면 `"defaultMode": "acceptEdits"` 처럼 설정한다.
 
